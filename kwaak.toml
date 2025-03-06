@@ -1,0 +1,32 @@
+project_name = "macronizer"
+language = "Rust"
+
+tavily_api_key = "env:TAVILY_API_KEY"
+github_api_key = "env:KWAAK_GITHUB_TOKEN"
+openai_api_key = "env:KWAAK_OPENAI_API_KEY"
+anthropic_api_key = "env:ANTHROPIC_API_KEY"
+
+[commands]
+test = "cargo test"
+lint_and_fix = "cargo fmt --all"
+
+[git]
+main_branch = "main"
+owner = "bogzbonny"
+repository = "macronizer"
+auto_push_remote = true
+
+[llm.indexing]
+provider = "OpenAI"
+prompt_model = "gpt-4o-mini"
+
+[llm.query]
+provider = "Anthropic"
+prompt_model = "claude-3-7-sonnet-latest"
+
+[llm.embedding]
+provider = "FastEmbed"
+embedding_model = "Xenova/bge-small-en-v1.5"
+
+[docker]
+dockerfile = "Dockerfile"
