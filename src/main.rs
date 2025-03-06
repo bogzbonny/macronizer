@@ -161,11 +161,50 @@ impl MacroPlayer {
     fn play(&self) {
         for event in &self.events {
             match event.event_type.as_str() {
-                "KeyPress" => println!("Simulating KeyPress: {:?}", event.key),
-                "KeyRelease" => println!("Simulating KeyRelease: {:?}", event.key),
-                "ButtonPress" => println!("Simulating ButtonPress: {:?}", event.button),
-                "ButtonRelease" => println!("Simulating ButtonRelease: {:?}", event.button),
-                "MouseMove" => println!("Simulating MouseMove to: {:?}", event.position),
+                "KeyPress" => {
+                    if let Some(key_str) = &event.key {
+                        if let Ok(key) = key_str.parse::<rdev::Key>() {
+                            rdev::simulate(&rdev::EventType::KeyPress(key))
+                                .unwrap_or_else(|e| println!("Error simulating KeyPress: {:?}", e));
+                            rdev::simulate(&rdev::EventType::KeyRelease(key)).unwrap_or_else(|e| {
+                                println!("Error simulating KeyRelease: {:?}", e)
+                            });
+                        }
+                    }
+                }
+                "KeyRelease" => {
+                    if let Some(key_str) = &event.key {
+                        if let Ok(key) = key_str.parse::<rdev::Key>() {
+                            rdev::simulate(&rdev::EventType::KeyRelease(key)).unwrap_or_else(|e| {
+                                println!("Error simulating KeyRelease: {:?}", e)
+                            });
+                        }
+                    }
+                }
+                "ButtonPress" => {
+                    if let Some(button_str) = &event.button {
+                        if let Ok(button) = button_str.parse::<rdev::Button>() {
+                            rdev::simulate(&rdev::EventType::ButtonPress(button)).unwrap_or_else(
+                                |e| println!("Error simulating ButtonPress: {:?}", e),
+                            );
+                        }
+                    }
+                }
+                "ButtonRelease" => {
+                    if let Some(button_str) = &event.button {
+                        if let Ok(button) = button_str.parse::<rdev::Button>() {
+                            rdev::simulate(&rdev::EventType::ButtonRelease(button)).unwrap_or_else(
+                                |e| println!("Error simulating ButtonRelease: {:?}", e),
+                            );
+                        }
+                    }
+                }
+                "MouseMove" => {
+                    if let Some((x, y)) = event.position {
+                        rdev::simulate(&rdev::EventType::MouseMove { x, y })
+                            .unwrap_or_else(|e| println!("Error simulating MouseMove: {:?}", e));
+                    }
+                }
                 _ => (),
             }
         }
