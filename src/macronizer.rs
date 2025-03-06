@@ -25,9 +25,9 @@ impl MockListener {
 
     pub fn was_event_triggered(&self, event_type: &str, key: &str) -> bool {
         let events = self.triggered_events.lock().unwrap();
-        events
-            .iter()
-            .any(|e| e.event_type == event_type && e.key.as_deref() == Some(key))
+        events.iter().any(|e| {
+            e.event_type == event_type && e.key.as_deref().unwrap_or("") == key
+        })
     }
 
     pub fn was_wait_condition_met(&self) -> bool {
@@ -42,16 +42,14 @@ impl MockListener {
 
 impl EventListener for MockListener {
     fn simulate(&self, mut callback: impl FnMut(RecordedEvent) + 'static + Send) {
-        thread::spawn(move || {
-            let key_press_event = RecordedEvent {
-                event_type: "KeyPress".to_string(),
-                key: Some("MockKey".to_string()),
-                button: None,
-                position: None,
-            };
+        let key_press_event = RecordedEvent {
+            event_type: "KeyPress".to_string(),
+            key: Some("MockKey".to_string()),
+            button: None,
+            position: None,
+        };
 
-            callback(key_press_event);
-        });
+        callback(key_press_event);
     }
 
     fn simulate_event(&self, event: RecordedEvent) {
@@ -63,7 +61,6 @@ pub struct RecordedEvents {
     pub events: Vec<RecordedEvent>,
 }
 
-// Implementation to derive Deserialization capability from a TOML Struct
 impl<'de> Deserialize<'de> for RecordedEvents {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -95,6 +92,7 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     let callback = move |event: RecordedEvent| {
         let mut events = recorded_events_clone.lock().unwrap();
+        println!("Recording event: {:?}", event); 
         events.push(event);
     };
     event_listener.simulate(callback);
@@ -107,10 +105,10 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
         let toml_string = events
             .iter()
             .map(|event| {
-                format!(
-                    "[[events]]\n{}",
+                format!([
+                    "[\[events\]]",
                     toml::to_string_pretty(event).expect("Failed to serialize event")
-                )
+                ].join("\n"))
             })
             .collect::<Vec<String>>()
             .join("\n");
@@ -188,6 +186,7 @@ pub fn simulate_button_press(listener: &MockListener, button: &str) {
         button: Some(button.to_string()),
         position: None,
     });
+    println!("Simulated ButtonPress: {}", button); 
 }
 
 pub fn simulate_button_release(listener: &MockListener, button: &str) {
