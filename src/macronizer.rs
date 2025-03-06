@@ -9,6 +9,7 @@ use std::{
 // Mock trait for local event simulation
 pub trait EventListener {
     fn simulate(&self, callback: impl FnMut(RecordedEvent) + 'static + Send);
+    fn simulate_event(&self, event: RecordedEvent);
 }
 
 pub struct MockListener {
@@ -34,10 +35,6 @@ impl MockListener {
     pub fn was_wait_condition_met(&self) -> bool {
         *self.wait_condition_met.lock().unwrap()
     }
-
-    pub fn simulate_event(&self, event: RecordedEvent) {
-        self.triggered_events.lock().unwrap().push(event);
-    }
 }
 
 impl EventListener for MockListener {
@@ -52,6 +49,10 @@ impl EventListener for MockListener {
 
             callback(key_press_event);
         });
+    }
+
+    fn simulate_event(&self, event: RecordedEvent) {
+        self.triggered_events.lock().unwrap().push(event);
     }
 }
 
