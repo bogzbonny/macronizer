@@ -82,9 +82,10 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
+        let correct_events: Vec<_> = events.clone(); // Ensure directly serializing the collected events
+        let toml_string = toml::to_string(&correct_events).expect("Failed to serialize events");
         println!(
-            "Serialized Events TOML:
+            "Serialized Correct Events TOML:
 {}",
             toml_string
         ); // Debugging output for validation
