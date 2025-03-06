@@ -7,11 +7,11 @@ use std::{
 };
 
 // Mock trait for local event simulation
-trait EventListener {
+pub trait EventListener {
     fn simulate(&self, callback: impl FnMut(RecordedEvent) + 'static + Send);
 }
 
-struct MockListener;
+pub struct MockListener;
 
 impl EventListener for MockListener {
     fn simulate(&self, mut callback: impl FnMut(RecordedEvent) + 'static + Send) {
@@ -57,7 +57,7 @@ impl EventListener for MockListener {
     }
 }
 
-fn start_recording(name: &str, event_listener: &impl EventListener) {
+pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     println!("Recording macro: {}", name);
     let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
     let file_path = config_dir.join(format!("{}.toml", name));
@@ -84,7 +84,7 @@ fn start_recording(name: &str, event_listener: &impl EventListener) {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct RecordedEvent {
+pub struct RecordedEvent {
     event_type: String,
     key: Option<String>,
     button: Option<String>,
