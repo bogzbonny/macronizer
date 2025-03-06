@@ -5,7 +5,9 @@ use std::{thread, time::Duration};
 mod macronizer;
 mod settings;
 
-use macronizer::{start_playback, start_recording, MockListener, RdevListener};
+use macronizer::{
+    start_playback, start_recording, MockListener, RdevListener, RecordedEvent, RecordedEvents,
+};
 use settings::load_settings;
 
 // Import tinyaudio for playing the bell sound
@@ -136,7 +138,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::macronizer::{MockListener, RecordedEvent};
+    use crate::macronizer::{MockListener, RecordedEvent, RecordedEvents};
 
     #[test]
     fn test_record_event() {
@@ -152,12 +154,14 @@ mod tests {
 
         // Read and assert the contents of the file
         let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
-        let events: Vec<RecordedEvent> =
+        let recorded: RecordedEvents =
             toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-        assert_eq!(events.len(), 1);
-        assert_eq!(events[0].event_type, "KeyPress");
-        assert_eq!(events[0].key.as_deref(), Some("MockKey"));
+        assert_eq!(recorded.events.len(), 3); // Expect KeyPress, ButtonPress, and MouseMove events
+        assert_eq!(recorded.events[0].event_type, "KeyPress");
+        assert_eq!(recorded.events[0].key.as_deref(), Some("MockKey"));
+        assert_eq!(recorded.events[1].event_type, "ButtonPress");
+        assert_eq!(recorded.events[1].button.as_deref(), Some("Button1"));
     }
 
     // Optional: Add more tests to cover macro playback and additional scenarios
