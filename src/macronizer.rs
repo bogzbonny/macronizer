@@ -80,7 +80,7 @@ impl EventListener for MockListener {
 }
 
 // Container for deserializing events
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct RecordedEvents {
     pub events: Vec<RecordedEvent>,
 }
@@ -107,17 +107,12 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        let toml_string = events
-            .iter()
-            .map(|event| {
-                let serialized_event =
-                    toml::to_string_pretty(event).expect("Failed to serialize event");
-                format!("[[events]]\n{}", serialized_event)
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        println!("Serialized Correct Events TOML:\n{}", toml_string);
+        let recorded = RecordedEvents {
+            events: events.clone(),
+        };
+        let toml_string =
+            toml::to_string_pretty(&recorded).expect("Failed to serialize recorded events");
+        println!("Serialized recorded events TOML:\n{}", toml_string);
         println!("Saving to path: {:?}", file_path);
 
         fs::write(file_path, toml_string).expect("Failed to save macro file");
@@ -355,8 +350,7 @@ mod tests {
         // Test edge case scenarios
         let mock_listener = MockListener::new();
 
-        // Empty recordings: simulate by not triggering any events
-        // Here, we simulate an empty recording by directly creating an empty macro file.
+        // Empty recordings: simulate by directly creating an empty macro file.
         let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
         fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
         let file_path = config_dir.join("empty_macro.toml");
