@@ -75,6 +75,20 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     fs::write(file_path, toml_string).expect("Failed to save macro file");
 }
 
+pub fn start_playback(name: &str, event_listener: &impl EventListener) {
+    println!("Playing back macro: {}", name);
+    let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+    let file_path = config_dir.join(format!("{}.toml", name));
+
+    let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
+    let events: Vec<RecordedEvent> =
+        toml::from_str(&contents).expect("Failed to deserialize macro file");
+
+    for event in events {
+        event_listener.simulate_event(event);
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RecordedEvent {
     event_type: String,
