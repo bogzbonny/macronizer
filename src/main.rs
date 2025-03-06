@@ -1,11 +1,28 @@
 use clap::{App, Arg, SubCommand};
+use rdev::{listen, Event, EventType};
 use std::fs;
 use std::path::PathBuf;
-
-use rdev::{listen, Event, EventType};
 use std::{thread, time};
 
-fn start_recording(name: &str) {
+// Define a trait for event listening that can be mocked
+trait EventListener {
+    fn start(&self, callback: impl Fn(Event) + 'static + Send);
+}
+
+// Implement the trait for the real rdev usage
+struct RdevListener;
+
+impl EventListener for RdevListener {
+    fn start(&self, callback: impl Fn(Event) + 'static + Send) {
+        thread::spawn(move || {
+            if let Err(error) = listen(callback) {
+                println!("Error: {:?}", error);
+            }
+        });
+    }
+}
+
+fn start_recording(name: &str, event_listener: &impl EventListener) {
     println!("Recording macro: {}", name);
     let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
     let file_path = config_dir.join(format!("{}.toml", name));
@@ -14,25 +31,46 @@ fn start_recording(name: &str) {
 
     let callback = move |event: Event| {
         let recorded_event = match event.event_type {
-            EventType::KeyPress(key) => RecordedEvent { event_type: "KeyPress".to_string(), key: Some(format!("{:?}", key)), button: None, position: None },
-            EventType::KeyRelease(key) => RecordedEvent { event_type: "KeyRelease".to_string(), key: Some(format!("{:?}", key)), button: None, position: None },
-            EventType::ButtonPress(button) => RecordedEvent { event_type: "ButtonPress".to_string(), key: None, button: Some(format!("{:?}", button)), position: None },
-            EventType::ButtonRelease(button) => RecordedEvent { event_type: "ButtonRelease".to_string(), key: None, button: Some(format!("{:?}", button)), position: None },
-            EventType::MouseMove { x, y } => RecordedEvent { event_type: "MouseMove".to_string(), key: None, button: None, position: Some((x, y)) },
+            EventType::KeyPress(key) => RecordedEvent {
+                event_type: "KeyPress".to_string(),
+                key: Some(format!("{:?}", key)),
+                button: None,
+                position: None,
+            },
+            EventType::KeyRelease(key) => RecordedEvent {
+                event_type: "KeyRelease".to_string(),
+                key: Some(format!("{:?}", key)),
+                button: None,
+                position: None,
+            },
+            EventType::ButtonPress(button) => RecordedEvent {
+                event_type: "ButtonPress".to_string(),
+                key: None,
+                button: Some(format!("{:?}", button)),
+                position: None,
+            },
+            EventType::ButtonRelease(button) => RecordedEvent {
+                event_type: "ButtonRelease".to_string(),
+                key: None,
+                button: Some(format!("{:?}", button)),
+                position: None,
+            },
+            EventType::MouseMove { x, y } => RecordedEvent {
+                event_type: "MouseMove".to_string(),
+                key: None,
+                button: None,
+                position: Some((x, y)),
+            },
             _ => return,
         };
         recorded_events.push(recorded_event);
     };
 
-    // Start event listening with callback
-    thread::spawn(move || {
-        if let Err(error) = listen(callback) {
-            println!("Error: {:?}", error);
-        }
-    });
+    // Use trait-based listener
+    event_listener.start(callback);
 
     // Simulate recording duration or waiting before starting
-    thread::sleep(time::Duration::from_secs(3)); 
+    thread::sleep(time::Duration::from_secs(3));
 
     // Serialize and save events
     let toml_string = toml::to_string(&recorded_events).expect("Failed to serialize events");
@@ -57,6 +95,7 @@ fn callback(event: Event) {
         _ => (),
     }
 }
+
 fn main() {
     // Establish configuration directories
     let config_dir = dirs::config_dir().unwrap().join("macronizer");
@@ -69,7 +108,12 @@ fn main() {
         fs::write(&settings_file, "").expect("Failed to create settings file");
     }
     // Create settings file with defaults if it doesn't exist or is empty
-    if !settings_file.exists() || fs::read_to_string(&settings_file).unwrap().trim().is_empty() {
+    if !settings_file.exists()
+        || fs::read_to_string(&settings_file)
+            .unwrap()
+            .trim()
+            .is_empty()
+    {
         let default_settings = r#"# Default stop recording/playback keystrokes
 stop_keystrokes = ["ControlLeft", "ShiftRight"]
 
@@ -77,6 +121,7 @@ stop_keystrokes = ["ControlLeft", "ShiftRight"]
 wait_strategy = "constant"
 constant_wait_time = 100  # milliseconds
 "#;
+
         fs::write(&settings_file, default_settings).expect("Failed to write default settings");
     }
 
@@ -118,8 +163,8 @@ constant_wait_time = 100  # milliseconds
         ("record", Some(sub_m)) => {
             let name = sub_m.value_of("name").unwrap();
             println!("Starting to record macro: {}", name);
-            start_recording(name);
-        },
+            start_recording(name, &RdevListener);
+        }
         ("run", Some(sub_m)) => {
             let name = sub_m.value_of("name").unwrap();
             let repeat = sub_m
@@ -133,6 +178,11 @@ constant_wait_time = 100  # milliseconds
             for _ in 0..repeat {
                 macro_player.play();
             }
+        }
+        _ => {}
+    }
+}
+
 struct MacroPlayer {
     events: Vec<RecordedEvent>,
 }
@@ -143,7 +193,8 @@ impl MacroPlayer {
         let file_path = config_dir.join(format!("{}.toml", name));
 
         let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
-        let events: Vec<RecordedEvent> = toml::from_str(&contents).expect("Failed to deserialize macro file");
+        let events: Vec<RecordedEvent> =
+            toml::from_str(&contents).expect("Failed to deserialize macro file");
 
         MacroPlayer { events }
     }
@@ -161,6 +212,3 @@ impl MacroPlayer {
         }
     }
 }
-
-        },
-        _ => {}
