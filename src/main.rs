@@ -1,4 +1,5 @@
 use clap::{App, Arg, SubCommand};
+use clap::{Arg, Command}; // Updated clap structure
 use std::fs;
 use std::path::PathBuf;
 use std::{thread, time};
