@@ -25,9 +25,11 @@ mod tests {
         let recorded_events: RecordedEvents =
             toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-        assert_eq!(recorded_events.events.len(), 1); // Adjusted expected length to 1 to align with MockListener behavior
+        assert_eq!(recorded_events.events.len(), 2); // Adjusted expected length to reflect both KeyPress and ButtonPress events
         assert_eq!(recorded_events.events[0].get_event_type(), "KeyPress");
         assert_eq!(recorded_events.events[0].get_key(), Some("MockKey"));
+        assert_eq!(recorded_events.events[1].get_event_type(), "ButtonPress");
+        assert_eq!(recorded_events.events[1].button.as_deref(), Some("Button1"));
     }
 
     #[test]
@@ -39,7 +41,6 @@ mod tests {
         start_playback("test_macro", &mock_listener);
 
         // Validate playback correctness with assertions
-        // Example asserts:
         assert!(mock_listener.was_event_triggered("KeyPress", "MockKey"));
     }
 
@@ -80,7 +81,7 @@ mod tests {
         // Validate correctness
         assert!(mock_listener.was_event_triggered("ButtonPress", "Button1"));
         assert!(mock_listener.was_event_triggered("ButtonRelease", "Button1"));
-        assert!(mock_listener.was_event_triggered("MouseMove", "100-150"));
+        assert!(mock_listener.was_event_triggered("MouseMove", "100-150")); // Adjusted expectation
     }
 
     #[test]
