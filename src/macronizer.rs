@@ -35,6 +35,11 @@ impl MockListener {
     pub fn was_wait_condition_met(&self) -> bool {
         *self.wait_condition_met.lock().unwrap()
     }
+
+    pub fn get_triggered_events_len(&self) -> usize {
+        let events = self.triggered_events.lock().unwrap();
+        events.len()
+    }
 }
 
 impl EventListener for MockListener {
@@ -96,6 +101,16 @@ pub struct RecordedEvent {
     key: Option<String>,
     button: Option<String>,
     position: Option<(f64, f64)>,
+}
+
+impl RecordedEvent {
+    pub fn get_event_type(&self) -> &str {
+        &self.event_type
+    }
+
+    pub fn get_key(&self) -> Option<&str> {
+        self.key.as_deref()
+    }
 }
 
 pub fn handle_stop_keystroke(listener: &MockListener) {
