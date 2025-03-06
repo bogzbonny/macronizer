@@ -1,34 +1,16 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mockall::*;
-    use rdev::{Event, EventType};
-
-    // Mock the EventListener trait
-    #[automock]
-    trait EventListener {
-        fn start(&self, callback: impl Fn(Event) + 'static + Send);
-    }
 
     #[test]
     fn test_record_event() {
-        // Create a mock event listener
-        let mut mock_listener = MockEventListener::new();
-
-        // Set expectations for the mock
-        mock_listener.expect_start().returning(|callback| {
-            // Simulate event callback
-            callback(Event {
-                event_type: EventType::KeyPress(rdev::Key::KeyA),
-                name: None,
-                time: 0,
-            });
-        });
+        // MockListener instantiation simulating event handling
+        let mock_listener = MockListener;
 
         // Call the recording function passing the mock listener
         start_recording("test_macro", &mock_listener);
 
-        // Validate that recordings are saved
+        // Validate that the recordings are saved
         let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
         let file_path = config_dir.join("test_macro.toml");
 
@@ -38,9 +20,8 @@ mod tests {
 
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].event_type, "KeyPress");
-        assert_eq!(events[0].key.as_deref(), Some("KeyA"));
+        assert_eq!(events[0].key.as_deref(), Some("MockKey"));
     }
     
-    // Add more tests to cover the playback and recording behavior as needed
-    
+    // Optional: Add more tests to cover macro playback and additional scenarios
 }
