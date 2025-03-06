@@ -1,6 +1,6 @@
 use std::fs;
 use std::sync::{Arc, Mutex};
-use std::{thread, time};
+use std::{thread, time::Duration};
 
 // Event listener trait for simulating or handling real events
 pub trait EventListener {
@@ -103,7 +103,13 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
         events.push(event);
     };
     event_listener.simulate(callback);
-    thread::sleep(time::Duration::from_secs(3));
+
+    // Use a shorter sleep duration when testing to avoid delays
+    if cfg!(test) {
+        thread::sleep(Duration::from_millis(10));
+    } else {
+        thread::sleep(Duration::from_secs(3));
+    }
 
     {
         let events = recorded_events.lock().unwrap();
