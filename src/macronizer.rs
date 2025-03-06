@@ -83,10 +83,8 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        // Serialize and save events as an array of tables
-        let toml_string =
-            toml::to_string(&serde_json::to_value(&*events).expect("Failed to convert to JSON"))
-                .expect("Failed to serialize events");
+        // Serialize directly to TOML
+        let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
         println!(
             "Serialized Correct Events TOML:
 {}",
@@ -110,7 +108,7 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
 
     let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
 
-    // Deserialize directly as a vector
+    // Deserialize directly as a vector of RecordedEvent
     let events: Vec<RecordedEvent> =
         toml::from_str(&contents).expect("Failed to deserialize macro file");
 
