@@ -37,7 +37,10 @@ mod tests {
         // Test playback of recorded macros using MockListener
         let mock_listener = MockListener::new();
 
-        // Assume start_playback is a function that plays back macros
+        // Ensure the macro file exists by recording first
+        start_recording("test_macro", &mock_listener);
+
+        // Now call playback
         start_playback("test_macro", &mock_listener);
 
         // Validate playback correctness with assertions
