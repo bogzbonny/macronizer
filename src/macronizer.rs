@@ -101,15 +101,14 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     {
         let events = recorded_events.lock().unwrap();
 
-        // Construct a proper TOML array of tables
+        // Correct format to serialize events
         let toml_string = events
             .iter()
             .map(|event| {
-                format!([
-                    "[[events]]",
-                    &toml::to_string_pretty(event).expect("Failed to serialize event")
-                ]
-                .join("\n"))
+                format!(
+                    "[[events]]\n{}",
+                    toml::to_string_pretty(event).expect("Failed to serialize event")
+                )
             })
             .collect::<Vec<String>>()
             .join("\n");
