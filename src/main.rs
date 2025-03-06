@@ -1,5 +1,6 @@
-use clap::{App, Arg, SubCommand};
-use rdev::{listen, Event};
+use clap::{Arg, Command};
+use rdev;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::{thread, time};
