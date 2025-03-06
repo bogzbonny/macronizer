@@ -1,6 +1,5 @@
 use clap::{Arg, Command};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::fs;
 use std::{
     sync::{Arc, Mutex},
@@ -83,8 +82,8 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        // Serialize directly to TOML
-        let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
+        // Serialize directly to TOML, corrected output
+        let toml_string = toml::to_string_pretty(&*events).expect("Failed to serialize events");
         println!(
             "Serialized Correct Events TOML:
 {}",
