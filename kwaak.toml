@@ -1,12 +1,13 @@
 project_name = "macronizer"
 language = "Rust"
+docker.dockerfile = "Dockerfile"
+otel_enabled = true
 
 tavily_api_key = "env:TAVILY_API_KEY"
 github_api_key = "env:KWAAK_GITHUB_TOKEN"
 openai_api_key = "env:KWAAK_OPENAI_API_KEY"
 anthropic_api_key = "env:ANTHROPIC_API_KEY"
 
-docker.dockerfile = "Dockerfile"
 disabled_tools.pull_request=true
 agent_edit_mode = "line"
 #agent = "PlanAct"
