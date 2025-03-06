@@ -82,15 +82,16 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        // Serialize and save events directly without the wrapper
-        let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
+        // Serialize and save events as an array of tables
+        let toml_string =
+            toml::to_string(&serde_json::to_value(&*events).expect("Failed to convert to JSON"))
+                .expect("Failed to serialize events");
         println!(
             "Serialized Correct Events TOML:
 {}",
             toml_string
         );
 
-        // Logging to check serialization output and path
         println!("Saving to path: {:?}", file_path);
 
         fs::write(file_path, toml_string).expect("Failed to save macro file");
@@ -112,7 +113,6 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
     let events: Vec<RecordedEvent> =
         toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-    // Logging to check deserialization output
     println!("Deserialized Events: {:?}", events);
 
     for event in events {
