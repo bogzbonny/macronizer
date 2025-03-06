@@ -101,17 +101,19 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     {
         let events = recorded_events.lock().unwrap();
 
-        // Correct format to serialize events
+        // Refine format for TOML making sure no escape characters are mis-used
         let toml_string = events
             .iter()
             .map(|event| {
-                format!(
-                    "[[events]]\n{}",
-                    toml::to_string_pretty(event).expect("Failed to serialize event")
-                )
+                let serialized_event =
+                    toml::to_string_pretty(event).expect("Failed to serialize event");
+                format!("[[events]]\n{}", serialized_event)
             })
             .collect::<Vec<String>>()
-            .join("\n");
+            .join(
+                "
+",
+            ); // Ensure correct line separation
 
         println!(
             "Serialized Correct Events TOML:
