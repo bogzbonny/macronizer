@@ -1,3 +1,6 @@
+use macronizer::{start_playback, start_recording, MockListener};
+use std::fs;
+
 #[cfg(test)]
 mod tests {
     use super::*;
