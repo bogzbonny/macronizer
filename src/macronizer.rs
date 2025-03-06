@@ -65,7 +65,7 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     println!("Recording macro: {}", name);
     let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
 
-    // Create macros directory if it does not exist
+    // Ensure the macros directory exists
     fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
 
     let file_path = config_dir.join(format!("{}.toml", name));
@@ -82,13 +82,14 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        let correct_events: Vec<_> = events.clone(); // Ensure directly serializing the collected events
-        let toml_string = toml::to_string(&correct_events).expect("Failed to serialize events");
-        println!(
-            "Serialized Correct Events TOML:
-{}",
-            toml_string
-        ); // Debugging output for validation
+        let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
+        /* Added to help you debug serialized structure:
+                let toml_string = toml::to_string_pretty(&*events).expect("Failed to serialize events");
+                println!(
+                    "Serialized Correct Events TOML (pretty):
+        {}",
+                    toml_string
+                ); */
         fs::write(file_path, toml_string).expect("Failed to save macro file");
     }
 }
@@ -111,12 +112,12 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)] // add Clone derive
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RecordedEvent {
-    event_type: String,
-    key: Option<String>,
-    button: Option<String>,
-    position: Option<(f64, f64)>,
+    pub event_type: String,
+    pub key: Option<String>,
+    pub button: Option<String>,
+    pub position: Option<(f64, f64)>,
 }
 
 impl RecordedEvent {
