@@ -25,9 +25,9 @@ impl MockListener {
 
     pub fn was_event_triggered(&self, event_type: &str, key: &str) -> bool {
         let events = self.triggered_events.lock().unwrap();
-        events.iter().any(|e| {
-            e.event_type == event_type && e.key.as_deref().unwrap_or("") == key
-        })
+        events
+            .iter()
+            .any(|e| e.event_type == event_type && e.key.as_deref().unwrap_or("") == key)
     }
 
     pub fn was_wait_condition_met(&self) -> bool {
@@ -92,7 +92,7 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     let callback = move |event: RecordedEvent| {
         let mut events = recorded_events_clone.lock().unwrap();
-        println!("Recording event: {:?}", event); 
+        println!("Recording event: {:?}", event);
         events.push(event);
     };
     event_listener.simulate(callback);
@@ -106,3 +106,103 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
             .iter()
             .map(|event| {
                 format!(
+                    r"[[events]]\n{}",
+                    toml::to_string_pretty(event).expect("Failed to serialize event")
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        println!(
+            "Serialized Correct Events TOML:
+{}",
+            toml_string
+        );
+
+        println!("Saving to path: {:?}", file_path);
+
+        fs::write(file_path, toml_string).expect("Failed to save macro file");
+    }
+}
+
+pub fn start_playback(name: &str, event_listener: &impl EventListener) {
+    println!("Playing back macro: {}", name);
+    let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+
+    // Create macros directory if it does not exist
+    fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
+
+    let file_path = config_dir.join(format!("{}.toml", name));
+
+    let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
+
+    // Deserialize into RecordedEvents
+    let recorded_events: RecordedEvents =
+        toml::from_str(&contents).expect("Failed to deserialize macro file");
+
+    println!("Deserialized Events: {:?}", recorded_events.events);
+
+    for event in recorded_events.events {
+        event_listener.simulate_event(event);
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct RecordedEvent {
+    pub event_type: String,
+    pub key: Option<String>,
+    pub button: Option<String>,
+    pub position: Option<(f64, f64)>,
+}
+
+impl RecordedEvent {
+    pub fn get_event_type(&self) -> &str {
+        &self.event_type
+    }
+
+    pub fn get_key(&self) -> Option<&str> {
+        self.key.as_deref()
+    }
+}
+
+pub fn handle_stop_keystroke(listener: &MockListener) {
+    listener.simulate_event(RecordedEvent {
+        event_type: "Stop".to_string(),
+        key: None,
+        button: None,
+        position: None,
+    });
+}
+
+pub fn simulate_wait(listener: &MockListener) {
+    let mut wait_met = listener.wait_condition_met.lock().unwrap();
+    *wait_met = true;
+}
+
+pub fn simulate_button_press(listener: &MockListener, button: &str) {
+    listener.simulate_event(RecordedEvent {
+        event_type: "ButtonPress".to_string(),
+        key: None,
+        button: Some(button.to_string()),
+        position: None,
+    });
+    println!("Simulated ButtonPress: {}", button);
+}
+
+pub fn simulate_button_release(listener: &MockListener, button: &str) {
+    listener.simulate_event(RecordedEvent {
+        event_type: "ButtonRelease".to_string(),
+        key: None,
+        button: Some(button.to_string()),
+        position: None,
+    });
+}
+
+pub fn simulate_mouse_movement(listener: &MockListener, x: i32, y: i32) {
+    listener.simulate_event(RecordedEvent {
+        event_type: "MouseMove".to_string(),
+        key: None,
+        button: None,
+        position: Some((x as f64, y as f64)),
+    });
+}
