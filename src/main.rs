@@ -133,5 +133,34 @@ constant_wait_time = 100  # milliseconds
             for _ in 0..repeat {
                 macro_player.play();
             }
+struct MacroPlayer {
+    events: Vec<RecordedEvent>,
+}
+
+impl MacroPlayer {
+    fn new(name: &str) -> Self {
+        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+        let file_path = config_dir.join(format!("{}.toml", name));
+
+        let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
+        let events: Vec<RecordedEvent> = toml::from_str(&contents).expect("Failed to deserialize macro file");
+
+        MacroPlayer { events }
+    }
+
+    fn play(&self) {
+        for event in &self.events {
+            match event.event_type.as_str() {
+                "KeyPress" => println!("Simulating KeyPress: {:?}", event.key),
+                "KeyRelease" => println!("Simulating KeyRelease: {:?}", event.key),
+                "ButtonPress" => println!("Simulating ButtonPress: {:?}", event.button),
+                "ButtonRelease" => println!("Simulating ButtonRelease: {:?}", event.button),
+                "MouseMove" => println!("Simulating MouseMove to: {:?}", event.position),
+                _ => (),
+            }
+        }
+    }
+}
+
         },
         _ => {}
