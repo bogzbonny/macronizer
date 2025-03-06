@@ -1,4 +1,5 @@
 use clap::{App, Arg, SubCommand};
+use rdev::{listen, Event};
 use std::fs;
 use std::path::PathBuf;
 use std::{thread, time};
