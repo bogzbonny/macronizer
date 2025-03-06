@@ -75,6 +75,7 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     fs::write(file_path, toml_string).expect("Failed to save macro file");
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct RecordedEvent {
     event_type: String,
     key: Option<String>,
