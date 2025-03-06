@@ -65,7 +65,7 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     println!("Recording macro: {}", name);
     let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
 
-    // Ensure the macros directory exists
+    // Create macros directory if it does not exist
     fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
 
     let file_path = config_dir.join(format!("{}.toml", name));
@@ -82,14 +82,22 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
-        /* Added to help you debug serialized structure:
-                let toml_string = toml::to_string_pretty(&*events).expect("Failed to serialize events");
-                println!(
-                    "Serialized Correct Events TOML (pretty):
-        {}",
-                    toml_string
-                ); */
+        let event_list = events.clone(); // clone to attach to toml
+
+        // Correct way to write toml with custom struct
+        #[derive(Serialize)]
+        struct EventsList {
+            events: Vec<RecordedEvent>,
+        }
+
+        let wrapped_events = EventsList { events: event_list };
+        let toml_string = toml::to_string(&wrapped_events).expect("Failed to serialize events");
+        println!(
+            "Serialized Correct Events TOML:
+{}",
+            toml_string
+        );
+
         fs::write(file_path, toml_string).expect("Failed to save macro file");
     }
 }
@@ -104,8 +112,16 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
     let file_path = config_dir.join(format!("{}.toml", name));
 
     let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
-    let events: Vec<RecordedEvent> =
+
+    // Correct deserialization logic
+    #[derive(Deserialize)]
+    struct EventsList {
+        events: Vec<RecordedEvent>,
+    }
+
+    let wrapped_events: EventsList =
         toml::from_str(&contents).expect("Failed to deserialize macro file");
+    let events = wrapped_events.events;
 
     for event in events {
         event_listener.simulate_event(event);
