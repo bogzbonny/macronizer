@@ -59,6 +59,28 @@ impl EventListener for MockListener {
     }
 }
 
+pub struct RecordedEvents {
+    pub events: Vec<RecordedEvent>,
+}
+
+// Implementation to derive Deserialization capability from a TOML Struct
+impl<'de> Deserialize<'de> for RecordedEvents {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Wrapper {
+            events: Vec<RecordedEvent>,
+        }
+
+        let wrapper = Wrapper::deserialize(deserializer)?;
+        Ok(RecordedEvents {
+            events: wrapper.events,
+        })
+    }
+}
+
 pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     println!("Recording macro: {}", name);
     let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
@@ -116,13 +138,13 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
 
     let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
 
-    // Deserialize directly as a vector of RecordedEvent
-    let events: Vec<RecordedEvent> =
+    // Deserialize into RecordedEvents
+    let recorded_events: RecordedEvents =
         toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-    println!("Deserialized Events: {:?}", events);
+    println!("Deserialized Events: {:?}", recorded_events.events);
 
-    for event in events {
+    for event in recorded_events.events {
         event_listener.simulate_event(event);
     }
 }
