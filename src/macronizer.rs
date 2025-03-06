@@ -80,14 +80,16 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     event_listener.simulate(callback);
     thread::sleep(time::Duration::from_secs(3));
 
-    let events = recorded_events.lock().unwrap();
-    let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
-    println!(
-        "Serialized TOML:
+    {
+        let events = recorded_events.lock().unwrap();
+        let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
+        println!(
+            "Serialized Events TOML:
 {}",
-        toml_string
-    ); // Debugging output for validation
-    fs::write(file_path, toml_string).expect("Failed to save macro file");
+            toml_string
+        ); // Debugging output for validation
+        fs::write(file_path, toml_string).expect("Failed to save macro file");
+    }
 }
 
 pub fn start_playback(name: &str, event_listener: &impl EventListener) {
