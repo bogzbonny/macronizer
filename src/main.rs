@@ -1,23 +1,25 @@
 use clap::{App, Arg, SubCommand};
-use rdev::{listen, Event, EventType};
 use std::fs;
 use std::path::PathBuf;
 use std::{thread, time};
 
-// Define a trait for event listening that can be mocked
+// Mock trait for local event simulation
 trait EventListener {
-    fn start(&self, callback: impl Fn(Event) + 'static + Send);
+    fn simulate(&self, callback: impl Fn(RecordedEvent) + 'static + Send);
 }
 
-// Implement the trait for the real rdev usage
-struct RdevListener;
+struct MockListener;
 
-impl EventListener for RdevListener {
-    fn start(&self, callback: impl Fn(Event) + 'static + Send) {
+impl EventListener for MockListener {
+    fn simulate(&self, callback: impl Fn(RecordedEvent) + 'static + Send) {
         thread::spawn(move || {
-            if let Err(error) = listen(callback) {
-                println!("Error: {:?}", error);
-            }
+            let mock_event = RecordedEvent {
+                event_type: "KeyPress".to_string(),
+                key: Some("MockKey".to_string()),
+                button: None,
+                position: None,
+            };
+            callback(mock_event);
         });
     }
 }
@@ -29,45 +31,12 @@ fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     let mut recorded_events = Vec::new();
 
-    let callback = move |event: Event| {
-        let recorded_event = match event.event_type {
-            EventType::KeyPress(key) => RecordedEvent {
-                event_type: "KeyPress".to_string(),
-                key: Some(format!("{:?}", key)),
-                button: None,
-                position: None,
-            },
-            EventType::KeyRelease(key) => RecordedEvent {
-                event_type: "KeyRelease".to_string(),
-                key: Some(format!("{:?}", key)),
-                button: None,
-                position: None,
-            },
-            EventType::ButtonPress(button) => RecordedEvent {
-                event_type: "ButtonPress".to_string(),
-                key: None,
-                button: Some(format!("{:?}", button)),
-                position: None,
-            },
-            EventType::ButtonRelease(button) => RecordedEvent {
-                event_type: "ButtonRelease".to_string(),
-                key: None,
-                button: Some(format!("{:?}", button)),
-                position: None,
-            },
-            EventType::MouseMove { x, y } => RecordedEvent {
-                event_type: "MouseMove".to_string(),
-                key: None,
-                button: None,
-                position: Some((x, y)),
-            },
-            _ => return,
-        };
-        recorded_events.push(recorded_event);
+    let callback = move |event: RecordedEvent| {
+        recorded_events.push(event);
     };
 
-    // Use trait-based listener
-    event_listener.start(callback);
+    // Use mock listener
+    event_listener.simulate(callback);
 
     // Simulate recording duration or waiting before starting
     thread::sleep(time::Duration::from_secs(3));
@@ -83,17 +52,6 @@ struct RecordedEvent {
     key: Option<String>,
     button: Option<String>,
     position: Option<(f64, f64)>,
-}
-
-fn callback(event: Event) {
-    match event.event_type {
-        EventType::KeyPress(key) => println!("Key Press: {:?}", key),
-        EventType::KeyRelease(key) => println!("Key Release: {:?}", key),
-        EventType::ButtonPress(button) => println!("Button Press: {:?}", button),
-        EventType::ButtonRelease(button) => println!("Button Release: {:?}", button),
-        EventType::MouseMove { x, y } => println!("Mouse Move: ({}, {})", x, y),
-        _ => (),
-    }
 }
 
 fn main() {
@@ -163,7 +121,7 @@ constant_wait_time = 100  # milliseconds
         ("record", Some(sub_m)) => {
             let name = sub_m.value_of("name").unwrap();
             println!("Starting to record macro: {}", name);
-            start_recording(name, &RdevListener);
+            start_recording(name, &MockListener);
         }
         ("run", Some(sub_m)) => {
             let name = sub_m.value_of("name").unwrap();
