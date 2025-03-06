@@ -12,7 +12,7 @@ pub trait EventListener {
 #[derive(Default)]
 pub struct MockListener {
     triggered_events: Mutex<Vec<RecordedEvent>>,
-    wait_condition_met: Mutex<bool>,
+    pub wait_condition_met: Mutex<bool>,
 }
 
 impl MockListener {
@@ -80,25 +80,9 @@ impl EventListener for MockListener {
 }
 
 // Container for deserializing events
+#[derive(serde::Deserialize, Debug)]
 pub struct RecordedEvents {
     pub events: Vec<RecordedEvent>,
-}
-
-impl<'de> serde::Deserialize<'de> for RecordedEvents {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        #[derive(serde::Deserialize)]
-        struct Wrapper {
-            events: Vec<RecordedEvent>,
-        }
-
-        let wrapper = Wrapper::deserialize(deserializer)?;
-        Ok(RecordedEvents {
-            events: wrapper.events,
-        })
-    }
 }
 
 // Starts recording by using the provided event listener
@@ -299,14 +283,14 @@ mod tests {
 
         // Read and assert the contents of the file
         let contents = fs::read_to_string(&file_path).expect("Failed to read macro file");
-        let recorded_events: RecordedEvents =
+        let recorded: RecordedEvents =
             toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-        assert_eq!(recorded_events.events.len(), 3); // Expect KeyPress, ButtonPress, and MouseMove events
-        assert_eq!(recorded_events.events[0].get_event_type(), "KeyPress");
-        assert_eq!(recorded_events.events[0].get_key(), Some("MockKey"));
-        assert_eq!(recorded_events.events[1].get_event_type(), "ButtonPress");
-        assert_eq!(recorded_events.events[1].button.as_deref(), Some("Button1"));
+        assert_eq!(recorded.events.len(), 3); // Expect KeyPress, ButtonPress, and MouseMove events
+        assert_eq!(recorded.events[0].get_event_type(), "KeyPress");
+        assert_eq!(recorded.events[0].get_key(), Some("MockKey"));
+        assert_eq!(recorded.events[1].get_event_type(), "ButtonPress");
+        assert_eq!(recorded.events[1].button.as_deref(), Some("Button1"));
     }
 
     #[test]
@@ -372,8 +356,7 @@ mod tests {
         let mock_listener = MockListener::new();
 
         // Empty recordings: simulate by not triggering any events
-        // Here, we simulate an empty recording by not calling the callback.
-        // Instead, we directly create an empty macro file.
+        // Here, we simulate an empty recording by directly creating an empty macro file.
         let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
         fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
         let file_path = config_dir.join("empty_macro.toml");
