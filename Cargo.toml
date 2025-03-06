@@ -8,3 +8,4 @@ clap = "4.0"
 rdev = "0.5"
 toml = "0.5"
 serde = { version = "1.0", features = ["derive"] }
+dirs = "*"
