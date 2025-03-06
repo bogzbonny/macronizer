@@ -1,4 +1,4 @@
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, Command};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::{
@@ -164,7 +164,7 @@ constant_wait_time = 100  # milliseconds
             let name = sub_m.get_one::<String>("name").unwrap();
             let repeat = sub_m
                 .get_one::<String>("number")
-                .unwrap_or("1")
+                .map_or("1".to_string(), |v| v.to_string())
                 .parse::<u32>()
                 .unwrap();
             println!("Running macro: {} for {} times", name, repeat);
