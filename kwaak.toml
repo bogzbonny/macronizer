@@ -9,12 +9,10 @@ openai_api_key = "env:KWAAK_OPENAI_API_KEY"
 anthropic_api_key = "env:ANTHROPIC_API_KEY"
 
 disabled_tools.pull_request=true
-agent_edit_mode = "line"
+#agent_edit_mode = "line"
+#tools.write_file=false
 #agent = "PlanAct"
-num_completions_for_summary = 15
-
-[tools]
-write_file=false
+num_completions_for_summary = 10
 
 [commands]
 commands.test = "RUST_BACKTRACE=1 cargo test --color=never"
@@ -31,8 +29,10 @@ provider = "OpenAI"
 prompt_model = "gpt-4o-mini"
 
 [llm.query]
-provider = "Anthropic"
-prompt_model = "claude-3-7-sonnet-latest"
+provider = "OpenAI"
+prompt_model = "gpt-o3-mini"
+#provider = "Anthropic"
+#prompt_model = "claude-3-7-sonnet-latest"
 
 [llm.embedding]
 provider = "FastEmbed"
