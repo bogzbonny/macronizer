@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libxcb-xfixes0-dev \
   libxcb1-dev \
   protobuf-compiler \
+  libx11-dev \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
