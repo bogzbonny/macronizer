@@ -266,15 +266,18 @@ mod tests {
 
     #[test]
     fn test_record_event() {
+        // Remove existing macro file if it exists
+        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+        let file_path = config_dir.join("test_macro.toml");
+        if file_path.exists() {
+            fs::remove_file(&file_path).expect("Failed to remove existing macro file");
+        }
+
         // MockListener instantiation simulating event handling
         let mock_listener = MockListener::new();
 
         // Call the recording function passing the mock listener
         start_recording("test_macro", &mock_listener);
-
-        // Validate that the recordings are saved
-        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
-        let file_path = config_dir.join("test_macro.toml");
 
         // Read and assert the contents of the file
         let contents = fs::read_to_string(&file_path).expect("Failed to read macro file");
@@ -290,6 +293,13 @@ mod tests {
 
     #[test]
     fn test_playback_function() {
+        // Remove existing macro file if it exists
+        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+        let file_path = config_dir.join("test_macro.toml");
+        if file_path.exists() {
+            fs::remove_file(&file_path).expect("Failed to remove existing macro file");
+        }
+
         // Test playback of recorded macros using MockListener
         let mock_listener = MockListener::new();
 
