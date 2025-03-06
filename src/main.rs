@@ -85,31 +85,31 @@ constant_wait_time = 100  # milliseconds
     }
 
     // Setup CLI with clap
-    let matches = App::new("macronizer")
+    let matches = Command::new("macronizer")
         .version("0.1.0")
         .author("Author Name <email@example.com>")
         .about("Records and plays back system-wide keyboard and mouse events")
         .subcommand(
-            SubCommand::with_name("record")
+            Command::new("record")
                 .about("Starts recording a macro")
                 .arg(
-                    Arg::with_name("name")
+                    Arg::new("name")
                         .help("Name of the macro to record")
                         .required(true)
                         .index(1),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("run")
+            Command::new("run")
                 .about("Runs a recorded macro")
                 .arg(
-                    Arg::with_name("name")
+                    Arg::new("name")
                         .help("Name of the macro to run")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::with_name("number")
+                    Arg::new("number")
                         .help("Number of times to repeat the macro")
                         .required(false)
                         .index(2),
