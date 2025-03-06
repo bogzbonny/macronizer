@@ -79,9 +79,9 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     thread::sleep(time::Duration::from_secs(3));
 
     {
-        let events = recorded_events.lock().unwrap();
+        let events = &*recorded_events.lock().unwrap();
 
-        // Adjust to ensure proper TOML array of tables serialization
+        // Serialize the unlocked vector containing RecordedEvent elements
         let toml_string = toml::to_string_pretty(&events).expect("Failed to serialize events");
 
         println!(
