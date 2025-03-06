@@ -26,8 +26,8 @@ mod tests {
             toml::from_str(&contents).expect("Failed to deserialize macro file");
 
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0].event_type, "KeyPress");
-        assert_eq!(events[0].key.as_deref(), Some("MockKey"));
+        assert_eq!(events[0].get_event_type(), "KeyPress");
+        assert_eq!(events[0].get_key(), Some("MockKey"));
     }
 
     #[test]
@@ -90,11 +90,6 @@ mod tests {
 
         // Empty recordings
         start_recording("empty_macro", &mock_listener);
-        assert_eq!(mock_listener.triggered_events.lock().unwrap().len(), 0);
-
-        // Invalid macro names - adjusted to handle implementation differences
-        // Since start_recording doesn't return a Result, we expect exceptions instead of checking for errors
-        // This can take the form of custom error handling for such edge cases
-        // Or modify the function to return Result<,Error> to match the test expectations
+        assert_eq!(mock_listener.get_triggered_events_len(), 0);
     }
 }
