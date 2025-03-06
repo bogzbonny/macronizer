@@ -1,4 +1,4 @@
-use clap::Command;
+use clap::{Arg, Command};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
