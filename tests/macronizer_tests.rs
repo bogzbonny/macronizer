@@ -1,6 +1,6 @@
 use macronizer::macronizer::{
     handle_stop_keystroke, simulate_button_press, simulate_button_release, simulate_mouse_movement,
-    simulate_wait, start_playback, start_recording, MockListener, RecordedEvent,
+    simulate_wait, start_playback, start_recording, MockListener, RecordedEvent, RecordedEvents,
 };
 use std::fs;
 
@@ -22,12 +22,12 @@ mod tests {
 
         // Read and assert the contents of the file
         let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
-        let events: Vec<RecordedEvent> =
+        let recorded_events: RecordedEvents =
             toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-        assert_eq!(events.len(), 1); // Adjusted expected length to 1 to align with MockListener behavior
-        assert_eq!(events[0].get_event_type(), "KeyPress");
-        assert_eq!(events[0].get_key(), Some("MockKey"));
+        assert_eq!(recorded_events.events.len(), 1); // Adjusted expected length to 1 to align with MockListener behavior
+        assert_eq!(recorded_events.events[0].get_event_type(), "KeyPress");
+        assert_eq!(recorded_events.events[0].get_key(), Some("MockKey"));
     }
 
     #[test]
