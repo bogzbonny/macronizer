@@ -13,7 +13,7 @@ agent_edit_mode = "line"
 num_completions_for_summary = 15
 
 [tools]
-write_file = false
+write_file=false
 
 [commands]
 commands.test = "RUST_BACKTRACE=1 cargo test --color=never"
