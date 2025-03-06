@@ -83,8 +83,11 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     {
         let events = recorded_events.lock().unwrap();
 
-        // Correct toml serialization without unnecessary wrapping
-        let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
+        // Saving recorded events with key for proper toml format
+        let events_list = RecordedEventsList {
+            events: events.clone(),
+        };
+        let toml_string = toml::to_string(&events_list).expect("Failed to serialize events");
         println!(
             "Serialized Correct Events TOML:
 {}",
@@ -106,13 +109,18 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
 
     let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
 
-    // Deserialize without wrapping
-    let events: Vec<RecordedEvent> =
+    // Deserialize with expected key wrapping
+    let events_list: RecordedEventsList =
         toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-    for event in events {
+    for event in events_list.events {
         event_listener.simulate_event(event);
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct RecordedEventsList {
+    events: Vec<RecordedEvent>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
