@@ -68,6 +68,17 @@ fn main() {
     if !settings_file.exists() {
         fs::write(&settings_file, "").expect("Failed to create settings file");
     }
+    // Create settings file with defaults if it doesn't exist or is empty
+    if !settings_file.exists() || fs::read_to_string(&settings_file).unwrap().trim().is_empty() {
+        let default_settings = r#"# Default stop recording/playback keystrokes
+stop_keystrokes = ["ControlLeft", "ShiftRight"]
+
+# Default wait strategy - options: actual, none, constant
+wait_strategy = "constant"
+constant_wait_time = 100  # milliseconds
+"#;
+        fs::write(&settings_file, default_settings).expect("Failed to write default settings");
+    }
 
     // Setup CLI with clap
     let matches = App::new("macronizer")
