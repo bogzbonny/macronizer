@@ -32,4 +32,4 @@ RUN mkdir src \
 
 # Build the actual project
 COPY . .
-RUN cargo test --no-run
+#RUN cargo test --no-run
