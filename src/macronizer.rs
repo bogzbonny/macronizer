@@ -111,7 +111,7 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)] // add Clone derive
 pub struct RecordedEvent {
     event_type: String,
     key: Option<String>,
