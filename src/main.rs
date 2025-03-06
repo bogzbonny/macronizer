@@ -107,35 +107,8 @@ fn main() {
         ("record", Some(sub_m)) => {
             let name = sub_m.value_of("name").unwrap();
             println!("Starting to record macro: {}", name);
-            // ToDo: Implement recording functionality
-        }
-use std::fs;
-
-struct MacroPlayer {
-    events: Vec<RecordedEvent>,
-}
-
-impl MacroPlayer {
-    fn new(macro_name: &str) -> MacroPlayer {
-        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
-        let file_path = config_dir.join(format!("{}.toml", macro_name));
-        let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
-        let events: Vec<RecordedEvent> = toml::from_str(&contents).expect("Failed to deserialize macro file");
-        MacroPlayer { events }
-    }
-
-    fn play(&self) {
-        for event in &self.events {
-            match event.event_type.as_str() {
-                "KeyPress" => println!("Simulating {:?}", event.key),
-                "ButtonPress" => println!("Simulating {:?}", event.button),
-                "MouseMove" => println!("Moving mouse to {:?}", event.position),
-                _ => {},
-            }
-        }
-    }
-}
-
+            start_recording(name);
+        },
         ("run", Some(sub_m)) => {
             let name = sub_m.value_of("name").unwrap();
             let repeat = sub_m
@@ -144,8 +117,10 @@ impl MacroPlayer {
                 .parse::<u32>()
                 .unwrap();
             println!("Running macro: {} for {} times", name, repeat);
-            // ToDo: Implement run functionality
-        }
+
+            let macro_player = MacroPlayer::new(name);
+            for _ in 0..repeat {
+                macro_player.play();
+            }
+        },
         _ => {}
-    }
-}
