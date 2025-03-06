@@ -90,6 +90,9 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
             toml_string
         );
 
+        // Logging to check serialization output and path
+        println!("Saving to path: {:?}", file_path);
+
         fs::write(file_path, toml_string).expect("Failed to save macro file");
     }
 }
@@ -108,6 +111,9 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
     // Deserialize directly as a vector
     let events: Vec<RecordedEvent> =
         toml::from_str(&contents).expect("Failed to deserialize macro file");
+
+    // Logging to check deserialization output
+    println!("Deserialized Events: {:?}", events);
 
     for event in events {
         event_listener.simulate_event(event);
