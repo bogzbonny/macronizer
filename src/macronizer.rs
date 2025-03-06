@@ -1,5 +1,3 @@
-use clap::{Arg, Command};
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
@@ -85,12 +83,12 @@ pub struct RecordedEvents {
     pub events: Vec<RecordedEvent>,
 }
 
-impl<'de> Deserialize<'de> for RecordedEvents {
+impl<'de> serde::Deserialize<'de> for RecordedEvents {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Deserialize)]
+        #[derive(serde::Deserialize)]
         struct Wrapper {
             events: Vec<RecordedEvent>,
         }
@@ -162,7 +160,7 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
 pub struct RecordedEvent {
     pub event_type: String,
     pub key: Option<String>,
@@ -224,7 +222,6 @@ pub fn simulate_mouse_movement(listener: &MockListener, x: i32, y: i32) {
 }
 
 // New implementation using rdev for real event handling
-// Note: This uses placeholder conversion logic; adjust conversions as needed
 extern crate rdev;
 
 pub struct RdevListener;
@@ -239,11 +236,15 @@ impl EventListener for RdevListener {
     fn simulate(&self, mut callback: impl FnMut(RecordedEvent) + 'static + Send) {
         // Use rdev::listen to receive real events
         if let Err(e) = rdev::listen(move |event| {
+            let pos = match event.event_type {
+                rdev::EventType::MouseMove { x, y } => Some((x, y)),
+                _ => None,
+            };
             let recorded = RecordedEvent {
                 event_type: format!("{:?}", event.event_type),
                 key: None,    // Placeholder: Add proper conversion if needed
                 button: None, // Placeholder conversion
-                position: event.position.map(|p| (p.x, p.y)),
+                position: pos,
             };
             callback(recorded);
         }) {
@@ -252,11 +253,10 @@ impl EventListener for RdevListener {
     }
 
     fn simulate_event(&self, event: RecordedEvent) {
-        // Use rdev::simulate to simulate a real event
         use rdev::{simulate, Button, EventType, Key};
         let rdev_event = match event.event_type.as_str() {
-            "KeyPress" => EventType::KeyPress(Key::Unknown),
-            "KeyRelease" => EventType::KeyRelease(Key::Unknown),
+            "KeyPress" => EventType::KeyPress(Key::Unknown(0)),
+            "KeyRelease" => EventType::KeyRelease(Key::Unknown(0)),
             "ButtonPress" => EventType::ButtonPress(Button::Left),
             "ButtonRelease" => EventType::ButtonRelease(Button::Left),
             "MouseMove" => {
