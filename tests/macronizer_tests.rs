@@ -25,7 +25,7 @@ mod tests {
         let recorded_events: RecordedEvents =
             toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-        assert_eq!(recorded_events.events.len(), 2); // Adjusted expected length to reflect both KeyPress and ButtonPress events
+        assert_eq!(recorded_events.events.len(), 3); // Adjusted expected length to reflect KeyPress, ButtonPress, and MouseMove events
         assert_eq!(recorded_events.events[0].get_event_type(), "KeyPress");
         assert_eq!(recorded_events.events[0].get_key(), Some("MockKey"));
         assert_eq!(recorded_events.events[1].get_event_type(), "ButtonPress");
