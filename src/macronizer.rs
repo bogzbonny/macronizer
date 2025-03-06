@@ -80,11 +80,16 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        let mut events_for_serialization: Vec<RecordedEvent> = Vec::new();
-        events_for_serialization.extend(events.iter().cloned());
+        let toml_value = toml::Value::Array(
+            events
+                .iter()
+                .map(|e| toml::Value::Table(toml::to_value(e).unwrap().as_table().unwrap().clone()))
+                .collect(),
+        );
+
         // Serialize directly to TOML, preserve vector as array of tables
-        let toml_string =
-            toml::to_string(&events_for_serialization).expect("Failed to serialize events");
+        let toml_string = toml::to_string_pretty(&toml_value).expect("Failed to serialize events");
+
         println!(
             "Serialized Correct Events TOML:
 {}",
