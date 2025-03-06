@@ -1,37 +1,22 @@
 use clap::{Arg, ArgAction, Command};
 use std::fs;
+use std::{thread, time::Duration};
 
 mod macronizer;
+mod settings;
 
 use macronizer::{start_playback, start_recording, MockListener, RdevListener};
+use settings::load_settings;
 
 fn main() {
     // Establish configuration directories
     let config_dir = dirs::config_dir().unwrap().join("macronizer");
     let macros_dir = config_dir.join("macros");
-    let settings_file = config_dir.join("settings.toml");
-
-    // Ensure directories and files are created
     fs::create_dir_all(&macros_dir).expect("Failed to create macros directory");
-    if !settings_file.exists() {
-        fs::write(&settings_file, "").expect("Failed to create settings file");
-    }
-    // Create settings file with defaults if it doesn't exist or is empty
-    if !settings_file.exists()
-        || fs::read_to_string(&settings_file)
-            .unwrap()
-            .trim()
-            .is_empty()
-    {
-        let default_settings = r#"# Default stop recording/playback keystrokes
-stop_keystrokes = [\"ControlLeft\", \"ShiftRight\"]
 
-# Default wait strategy - options: actual, none, constant
-wait_strategy = \"constant\"
-constant_wait_time = 100  # milliseconds
-"#;
-        fs::write(&settings_file, default_settings).expect("Failed to write default settings");
-    }
+    // Load settings (this will create the file with defaults if needed)
+    let settings = load_settings();
+    println!("Loaded settings: {:?}", settings);
 
     // Setup CLI with clap
     let matches = Command::new("macronizer")
@@ -42,13 +27,14 @@ constant_wait_time = 100  # milliseconds
             Command::new("record")
                 .about("Starts recording a macro")
                 .arg(
-                    Arg::new("name")
+                    // Name of macro
+                    clap::Arg::new("name")
                         .help("Name of the macro to record")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::new("real")
+                    clap::Arg::new("real")
                         .long("real")
                         .help("Use real event listener")
                         .action(ArgAction::SetTrue),
@@ -58,19 +44,19 @@ constant_wait_time = 100  # milliseconds
             Command::new("run")
                 .about("Runs a recorded macro")
                 .arg(
-                    Arg::new("name")
+                    clap::Arg::new("name")
                         .help("Name of the macro to run")
                         .required(true)
                         .index(1),
                 )
                 .arg(
-                    Arg::new("number")
+                    clap::Arg::new("number")
                         .help("Number of times to repeat the macro")
                         .required(false)
                         .index(2),
                 )
                 .arg(
-                    Arg::new("real")
+                    clap::Arg::new("real")
                         .long("real")
                         .help("Use real event listener")
                         .action(ArgAction::SetTrue),
@@ -83,7 +69,14 @@ constant_wait_time = 100  # milliseconds
         Some(("record", sub_m)) => {
             let name = sub_m.get_one::<String>("name").unwrap();
             let use_real = sub_m.get_flag("real");
-            println!("Starting to record macro: {}", name);
+            println!("Preparing to record macro: {}", name);
+            // 3-second countdown before recording starts
+            for i in (1..=3).rev() {
+                println!("Recording starts in {}...", i);
+                thread::sleep(Duration::from_secs(1));
+            }
+            println!("Recording started!");
+
             if use_real {
                 start_recording(name, &RdevListener::new());
             } else {

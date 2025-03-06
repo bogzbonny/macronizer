@@ -22,7 +22,7 @@ impl Default for Settings {
     }
 }
 
-/// Loads settings from ~/.config/macronizer/settings.toml. 
+/// Loads settings from ~/.config/macronizer/settings.toml.
 /// If the settings file does not exist, it creates one with default values.
 pub fn load_settings() -> Settings {
     let config_dir = dirs::config_dir()
@@ -32,16 +32,14 @@ pub fn load_settings() -> Settings {
     if !settings_path.exists() {
         fs::create_dir_all(&config_dir).expect("Unable to create config directory");
         let default_settings = Settings::default();
-        let toml_str = toml::to_string(&default_settings)
-            .expect("Failed to serialize default settings");
-        let mut file = fs::File::create(&settings_path)
-            .expect("Failed to create settings file");
+        let toml_str =
+            toml::to_string(&default_settings).expect("Failed to serialize default settings");
+        let mut file = fs::File::create(&settings_path).expect("Failed to create settings file");
         file.write_all(toml_str.as_bytes())
             .expect("Failed to write default settings");
         return default_settings;
     }
-    let contents = fs::read_to_string(&settings_path)
-        .expect("Failed to read settings file");
+    let contents = fs::read_to_string(&settings_path).expect("Failed to read settings file");
     toml::from_str(&contents).unwrap_or_else(|_| {
         eprintln!("Failed to parse settings file, using default settings");
         Settings::default()
