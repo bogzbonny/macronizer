@@ -1,4 +1,7 @@
-use macronizer::{start_playback, start_recording, MockListener};
+use macronizer::macronizer::{
+    handle_stop_keystroke, simulate_button_press, simulate_button_release, simulate_mouse_movement,
+    simulate_wait, start_playback, start_recording, MockListener,
+};
 use std::fs;
 
 #[cfg(test)]
