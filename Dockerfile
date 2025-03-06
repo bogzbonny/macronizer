@@ -17,7 +17,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libxcb-shape0-dev \
   libxcb-xfixes0-dev \
   libxcb1-dev \
+  libxss-dev \
+  libxxf86vm-dev \
+  libxkbfile-dev \
+  libxv-dev \
   protobuf-compiler \
+  libx11-dev \
+  libxi-dev \
+  libxtst-dev \
+  pkg-config \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
