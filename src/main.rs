@@ -1,4 +1,4 @@
-use clap::{Arg, ArgAction, Command};
+use clap::{ArgAction, Command};
 use std::fs;
 use std::{thread, time::Duration};
 
@@ -10,8 +10,9 @@ use macronizer::{
 };
 use settings::load_settings;
 
-// Import tinyaudio for playing the bell sound
-use tinyaudio::{Player, Sound};
+// Import tinyaudio modules for playing the bell sound
+use tinyaudio::player::Player;
+use tinyaudio::sound::Sound;
 
 /// Plays a short bell noise using tinyaudio.
 fn play_bell() {
