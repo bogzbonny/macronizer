@@ -1,7 +1,5 @@
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 use std::fs;
-use std::thread;
-use std::time;
 
 mod macronizer;
 
@@ -53,7 +51,7 @@ constant_wait_time = 100  # milliseconds
                     Arg::new("real")
                         .long("real")
                         .help("Use real event listener")
-                        .takes_value(false),
+                        .action(ArgAction::SetTrue),
                 ),
         )
         .subcommand(
@@ -75,7 +73,7 @@ constant_wait_time = 100  # milliseconds
                     Arg::new("real")
                         .long("real")
                         .help("Use real event listener")
-                        .takes_value(false),
+                        .action(ArgAction::SetTrue),
                 ),
         )
         .get_matches();
