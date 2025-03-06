@@ -10,32 +10,10 @@ use macronizer::{
 };
 use settings::load_settings;
 
-// Import tinyaudio modules for playing the bell sound
-use tinyaudio::player::Player;
-use tinyaudio::sound::Sound;
-
-/// Plays a short bell noise using tinyaudio.
+/// Plays a short bell noise. (Stubbed implementation, as tinyaudio integration is omitted.)
 fn play_bell() {
-    // Parameters for the bell sound
-    let sample_rate = 44100;
-    let frequency = 880.0; // Higher pitch for bell-like sound
-    let duration_secs = 0.3; // 0.3 second duration
-    let num_samples = (sample_rate as f32 * duration_secs) as usize;
-
-    // Generate a sine wave
-    let samples: Vec<f32> = (0..num_samples)
-        .map(|i| {
-            let t = i as f32 / sample_rate as f32;
-            (2.0 * std::f32::consts::PI * frequency * t).sin()
-        })
-        .collect();
-
-    // Create a Sound from the generated samples
-    let sound = Sound::from_pcm(samples, sample_rate as u32, 1);
-
-    // Create a default audio player and play the sound
-    let player = Player::default();
-    player.play(sound);
+    // Instead of playing a sound, we print a message.
+    println!("Bell sound would play here.");
 }
 
 fn main() {
