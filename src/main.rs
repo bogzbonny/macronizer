@@ -7,13 +7,44 @@ use std::{thread, time};
 
 fn start_recording(name: &str) {
     println!("Recording macro: {}", name);
+    let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+    let file_path = config_dir.join(format!("{}.toml", name));
+
+    let mut recorded_events = Vec::new();
+
+    let callback = move |event: Event| {
+        let recorded_event = match event.event_type {
+            EventType::KeyPress(key) => RecordedEvent { event_type: "KeyPress".to_string(), key: Some(format!("{:?}", key)), button: None, position: None },
+            EventType::KeyRelease(key) => RecordedEvent { event_type: "KeyRelease".to_string(), key: Some(format!("{:?}", key)), button: None, position: None },
+            EventType::ButtonPress(button) => RecordedEvent { event_type: "ButtonPress".to_string(), key: None, button: Some(format!("{:?}", button)), position: None },
+            EventType::ButtonRelease(button) => RecordedEvent { event_type: "ButtonRelease".to_string(), key: None, button: Some(format!("{:?}", button)), position: None },
+            EventType::MouseMove { x, y } => RecordedEvent { event_type: "MouseMove".to_string(), key: None, button: None, position: Some((x, y)) },
+            _ => return,
+        };
+        recorded_events.push(recorded_event);
+    };
+
+    // Start event listening with callback
     thread::spawn(move || {
         if let Err(error) = listen(callback) {
             println!("Error: {:?}", error);
         }
     });
 
-    thread::sleep(time::Duration::from_secs(3)); // Simulate recording duration or waiting before starting
+    // Simulate recording duration or waiting before starting
+    thread::sleep(time::Duration::from_secs(3)); 
+
+    // Serialize and save events
+    let toml_string = toml::to_string(&recorded_events).expect("Failed to serialize events");
+    fs::write(file_path, toml_string).expect("Failed to save macro file");
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct RecordedEvent {
+    event_type: String,
+    key: Option<String>,
+    button: Option<String>,
+    position: Option<(f64, f64)>,
 }
 
 fn callback(event: Event) {
