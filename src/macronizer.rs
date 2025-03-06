@@ -79,15 +79,19 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     thread::sleep(time::Duration::from_secs(3));
 
     {
-        let events = &*recorded_events.lock().unwrap();
-        let toml_string = format!(
-            "{}",
-            events
-                .iter()
-                .map(|event| { toml::to_string_pretty(&event).expect("Failed to serialize event") })
-                .collect::<Vec<String>>()
-                .join("\n")
-        );
+        let events = recorded_events.lock().unwrap();
+
+        // Construct a proper TOML array of tables
+        let toml_string = events
+            .iter()
+            .map(|event| {
+                format!(
+                    "[[events]]\n{}",
+                    toml::to_string_pretty(event).expect("Failed to serialize event")
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
 
         println!(
             "Serialized Correct Events TOML:
