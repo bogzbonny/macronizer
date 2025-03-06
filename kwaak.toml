@@ -30,7 +30,7 @@ prompt_model = "gpt-4o-mini"
 
 [llm.query]
 provider = "OpenAI"
-prompt_model = "o3-mini"
+prompt_model = "gpt-4o"
 #provider = "Anthropic"
 #prompt_model = "claude-3-7-sonnet-latest"
 
