@@ -1,10 +1,8 @@
 use clap::{Arg, Command};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::{
-    sync::{Arc, Mutex},
-    thread, time,
-};
+use std::sync::{Arc, Mutex};
+use std::{thread, time};
 
 // Mock trait for local event simulation
 pub trait EventListener {
@@ -82,8 +80,11 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        // Serialize directly to TOML, corrected output
-        let toml_string = toml::to_string_pretty(&*events).expect("Failed to serialize events");
+        let mut events_for_serialization: Vec<RecordedEvent> = Vec::new();
+        events_for_serialization.extend(events.iter().cloned());
+        // Serialize directly to TOML, preserve vector as array of tables
+        let toml_string =
+            toml::to_string(&events_for_serialization).expect("Failed to serialize events");
         println!(
             "Serialized Correct Events TOML:
 {}",
@@ -118,7 +119,7 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RecordedEvent {
     pub event_type: String,
     pub key: Option<String>,
