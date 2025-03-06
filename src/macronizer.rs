@@ -1,5 +1,6 @@
 use clap::{Arg, Command};
 use serde::{Deserialize, Serialize};
+use serde_json;
 use std::fs;
 use std::{
     sync::{Arc, Mutex},
