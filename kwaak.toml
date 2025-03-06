@@ -6,8 +6,17 @@ github_api_key = "env:KWAAK_GITHUB_TOKEN"
 openai_api_key = "env:KWAAK_OPENAI_API_KEY"
 anthropic_api_key = "env:ANTHROPIC_API_KEY"
 
+docker.dockerfile = "Dockerfile"
+disabled_tools.pull_request=true
+agent_edit_mode = "line"
+#agent = "PlanAct"
+num_completions_for_summary = 15
+
+[tools]
+write_file = false
+
 [commands]
-test = "cargo test"
+commands.test = "RUST_BACKTRACE=1 cargo test --color=never"
 lint_and_fix = "cargo fmt --all"
 
 [git]
@@ -28,5 +37,3 @@ prompt_model = "claude-3-7-sonnet-latest"
 provider = "FastEmbed"
 embedding_model = "Xenova/bge-small-en-v1.5"
 
-[docker]
-dockerfile = "Dockerfile"
