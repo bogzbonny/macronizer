@@ -1,5 +1,6 @@
 use clap::{Arg, Command};
 use serde::{Deserialize, Serialize};
+use serde_json::to_value;
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
@@ -83,7 +84,7 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
         let toml_value = toml::Value::Array(
             events
                 .iter()
-                .map(|e| toml::Value::Table(toml::to_value(e).unwrap().as_table().unwrap().clone()))
+                .map(|e| toml::Value::Table(to_value(e).unwrap().as_table().unwrap().clone()))
                 .collect(),
         );
 
