@@ -5,9 +5,7 @@ use std::{thread, time::Duration};
 mod macronizer;
 mod settings;
 
-use macronizer::{
-    start_playback, start_recording, MockListener, RdevListener, RecordedEvent, RecordedEvents,
-};
+use macronizer::{start_playback, start_recording, MockListener, RdevListener, RecordedEvents};
 use settings::load_settings;
 
 /// Plays a short bell noise. (Stubbed implementation, as tinyaudio integration is omitted.)
@@ -145,6 +143,4 @@ mod tests {
         assert_eq!(recorded.events[1].event_type, "ButtonPress");
         assert_eq!(recorded.events[1].button.as_deref(), Some("Button1"));
     }
-
-    // Optional: Additional tests can be added here
 }
