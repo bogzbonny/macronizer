@@ -23,11 +23,16 @@ impl MockListener {
         }
     }
 
-    pub fn was_event_triggered(&self, event_type: &str, key: &str) -> bool {
+    pub fn was_event_triggered(&self, event_type: &str, identifier: &str) -> bool {
         let events = self.triggered_events.lock().unwrap();
-        events
-            .iter()
-            .any(|e| e.event_type == event_type && e.button.as_deref().unwrap_or("") == key)
+        events.iter().any(|e| {
+            e.event_type == event_type
+                && (e.key.as_deref().unwrap_or("") == identifier
+                    || e.button.as_deref().unwrap_or("") == identifier
+                    || e.position.map_or(false, |pos| {
+                        format!("{}-{}", pos.0.round(), pos.1.round()) == identifier
+                    }))
+        })
     }
 
     pub fn was_wait_condition_met(&self) -> bool {
@@ -59,6 +64,15 @@ impl EventListener for MockListener {
         };
 
         callback(button_press_event);
+
+        // Simulate a mouse movement
+        let mouse_move_event = RecordedEvent {
+            event_type: "MouseMove".to_string(),
+            key: None,
+            button: None,
+            position: Some((100.0, 150.0)), // Ensure float precision matches with test expectations
+        };
+        callback(mouse_move_event);
     }
 
     fn simulate_event(&self, event: RecordedEvent) {
