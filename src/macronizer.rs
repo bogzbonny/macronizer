@@ -1,6 +1,5 @@
 use clap::{Arg, Command};
 use serde::{Deserialize, Serialize};
-use serde_json::to_value;
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
@@ -81,15 +80,9 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-        let toml_value = toml::Value::Array(
-            events
-                .iter()
-                .map(|e| toml::Value::Table(to_value(e).unwrap().as_table().unwrap().clone()))
-                .collect(),
-        );
 
-        // Serialize directly to TOML, preserve vector as array of tables
-        let toml_string = toml::to_string_pretty(&toml_value).expect("Failed to serialize events");
+        // Serialize directly to TOML, use correct array of tables
+        let toml_string = toml::to_string(&events).expect("Failed to serialize events");
 
         println!(
             "Serialized Correct Events TOML:
