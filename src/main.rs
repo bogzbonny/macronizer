@@ -1,4 +1,4 @@
-use clap::{Arg, Command};
+use clap::{App, Arg, SubCommand};
 use std::fs;
 use std::path::PathBuf;
 use std::{thread, time};
