@@ -117,19 +117,22 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::macronizer::{MockListener, RecordedEvent, RecordedEvents};
+    use std::fs;
 
     #[test]
     fn test_record_event() {
-        // MockListener instantiation simulating event handling
+        // Remove existing test_macro file if it exists
+        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+        let file_path = config_dir.join("test_macro.toml");
+        if file_path.exists() {
+            fs::remove_file(&file_path).expect("Failed to remove existing macro file");
+        }
+
+        // Use default MockListener for testing
         let mock_listener = MockListener::default();
 
         // Call the recording function passing the mock listener
         start_recording("test_macro", &mock_listener);
-
-        // Validate that the recordings are saved
-        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
-        let file_path = config_dir.join("test_macro.toml");
 
         // Read and assert the contents of the file
         let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
@@ -143,5 +146,5 @@ mod tests {
         assert_eq!(recorded.events[1].button.as_deref(), Some("Button1"));
     }
 
-    // Optional: Add more tests to cover macro playback and additional scenarios
+    // Optional: Additional tests can be added here
 }
