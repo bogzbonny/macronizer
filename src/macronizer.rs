@@ -105,10 +105,11 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
         let toml_string = events
             .iter()
             .map(|event| {
-                format!(
-                    r"[[events]]\n{}",
-                    toml::to_string_pretty(event).expect("Failed to serialize event")
-                )
+                format!([
+                    "[[events]]",
+                    &toml::to_string_pretty(event).expect("Failed to serialize event")
+                ]
+                .join("\n"))
             })
             .collect::<Vec<String>>()
             .join("\n");
