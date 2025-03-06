@@ -6,13 +6,13 @@ use std::{thread, time};
 
 // Mock trait for local event simulation
 trait EventListener {
-    fn simulate(&self, callback: impl Fn(RecordedEvent) + 'static + Send);
+    fn simulate(&self, callback: impl FnMut(RecordedEvent) + 'static + Send);
 }
 
 struct MockListener;
 
 impl EventListener for MockListener {
-    fn simulate(&self, callback: impl Fn(RecordedEvent) + 'static + Send) {
+    fn simulate(&self, mut callback: impl FnMut(RecordedEvent) + 'static + Send) {
         thread::spawn(move || {
             let mock_event = RecordedEvent {
                 event_type: "KeyPress".to_string(),
