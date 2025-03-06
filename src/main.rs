@@ -2,6 +2,30 @@ use clap::{App, Arg, SubCommand};
 use std::fs;
 use std::path::PathBuf;
 
+use rdev::{listen, Event, EventType};
+use std::{thread, time};
+
+fn start_recording(name: &str) {
+    println!("Recording macro: {}", name);
+    thread::spawn(move || {
+        if let Err(error) = listen(callback) {
+            println!("Error: {:?}", error);
+        }
+    });
+
+    thread::sleep(time::Duration::from_secs(3)); // Simulate recording duration or waiting before starting
+}
+
+fn callback(event: Event) {
+    match event.event_type {
+        EventType::KeyPress(key) => println!("Key Press: {:?}", key),
+        EventType::KeyRelease(key) => println!("Key Release: {:?}", key),
+        EventType::ButtonPress(button) => println!("Button Press: {:?}", button),
+        EventType::ButtonRelease(button) => println!("Button Release: {:?}", button),
+        EventType::MouseMove { x, y } => println!("Mouse Move: ({}, {})", x, y),
+        _ => (),
+    }
+}
 fn main() {
     // Establish configuration directories
     let config_dir = dirs::config_dir().unwrap().join("macronizer");
