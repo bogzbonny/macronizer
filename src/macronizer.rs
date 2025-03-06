@@ -81,8 +81,8 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     {
         let events = recorded_events.lock().unwrap();
 
-        // Serialize directly to TOML, use correct array of tables
-        let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
+        // Adjust to ensure proper TOML array of tables serialization
+        let toml_string = toml::to_string_pretty(&events).expect("Failed to serialize events");
 
         println!(
             "Serialized Correct Events TOML:
