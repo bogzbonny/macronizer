@@ -13,13 +13,43 @@ struct MockListener;
 impl EventListener for MockListener {
     fn simulate(&self, mut callback: impl FnMut(RecordedEvent) + 'static + Send) {
         thread::spawn(move || {
-            let mock_event = RecordedEvent {
+            // Simulate different types of mock events
+            let key_press_event = RecordedEvent {
                 event_type: "KeyPress".to_string(),
                 key: Some("MockKey".to_string()),
                 button: None,
                 position: None,
             };
-            callback(mock_event);
+            let key_release_event = RecordedEvent {
+                event_type: "KeyRelease".to_string(),
+                key: Some("MockKey".to_string()),
+                button: None,
+                position: None,
+            };
+            let button_press_event = RecordedEvent {
+                event_type: "ButtonPress".to_string(),
+                key: None,
+                button: Some("MockButton".to_string()),
+                position: None,
+            };
+            let button_release_event = RecordedEvent {
+                event_type: "ButtonRelease".to_string(),
+                key: None,
+                button: Some("MockButton".to_string()),
+                position: None,
+            };
+            let mouse_move_event = RecordedEvent {
+                event_type: "MouseMove".to_string(),
+                key: None,
+                button: None,
+                position: Some((100.0, 200.0)),
+            };
+
+            callback(key_press_event);
+            callback(key_release_event);
+            callback(button_press_event);
+            callback(button_release_event);
+            callback(mouse_move_event);
         });
     }
 }
