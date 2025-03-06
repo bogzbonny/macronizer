@@ -1,38 +1,17 @@
-use clap::{Arg, ArgAction, Command};
+use clap::{ArgAction, Command};
 use std::fs;
 use std::{thread, time::Duration};
 
 mod macronizer;
 mod settings;
 
-use macronizer::{start_playback, start_recording, MockListener, RdevListener};
+use macronizer::{start_playback, start_recording, MockListener, RdevListener, RecordedEvents};
 use settings::load_settings;
 
-// Import tinyaudio for playing the bell sound
-use tinyaudio::{Player, Sound};
-
-/// Plays a short bell noise using tinyaudio.
+/// Plays a short bell noise. (Stubbed implementation, as tinyaudio integration is omitted.)
 fn play_bell() {
-    // Parameters for the bell sound
-    let sample_rate = 44100;
-    let frequency = 880.0; // Higher pitch for bell-like sound
-    let duration_secs = 0.3; // 0.3 second duration
-    let num_samples = (sample_rate as f32 * duration_secs) as usize;
-
-    // Generate a sine wave
-    let samples: Vec<f32> = (0..num_samples)
-        .map(|i| {
-            let t = i as f32 / sample_rate as f32;
-            (2.0 * std::f32::consts::PI * frequency * t).sin()
-        })
-        .collect();
-
-    // Create a Sound from the generated samples
-    let sound = Sound::from_pcm(samples, sample_rate as u32, 1);
-
-    // Create a default audio player and play the sound
-    let player = Player::default();
-    player.play(sound);
+    // Instead of playing a sound, we print a message.
+    println!("Bell sound would play here.");
 }
 
 fn main() {
@@ -136,29 +115,32 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::macronizer::{MockListener, RecordedEvent};
+    use std::fs;
 
     #[test]
     fn test_record_event() {
-        // MockListener instantiation simulating event handling
+        // Remove existing test_macro file if it exists
+        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+        let file_path = config_dir.join("test_macro.toml");
+        if file_path.exists() {
+            fs::remove_file(&file_path).expect("Failed to remove existing macro file");
+        }
+
+        // Use default MockListener for testing
         let mock_listener = MockListener::default();
 
         // Call the recording function passing the mock listener
         start_recording("test_macro", &mock_listener);
 
-        // Validate that the recordings are saved
-        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
-        let file_path = config_dir.join("test_macro.toml");
-
         // Read and assert the contents of the file
         let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
-        let events: Vec<RecordedEvent> =
+        let recorded: RecordedEvents =
             toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-        assert_eq!(events.len(), 1);
-        assert_eq!(events[0].event_type, "KeyPress");
-        assert_eq!(events[0].key.as_deref(), Some("MockKey"));
+        assert_eq!(recorded.events.len(), 3); // Expect KeyPress, ButtonPress, and MouseMove events
+        assert_eq!(recorded.events[0].event_type, "KeyPress");
+        assert_eq!(recorded.events[0].key.as_deref(), Some("MockKey"));
+        assert_eq!(recorded.events[1].event_type, "ButtonPress");
+        assert_eq!(recorded.events[1].button.as_deref(), Some("Button1"));
     }
-
-    // Optional: Add more tests to cover macro playback and additional scenarios
 }

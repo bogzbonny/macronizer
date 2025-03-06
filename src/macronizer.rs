@@ -1,6 +1,6 @@
 use std::fs;
 use std::sync::{Arc, Mutex};
-use std::{thread, time};
+use std::{thread, time::Duration};
 
 // Event listener trait for simulating or handling real events
 pub trait EventListener {
@@ -12,7 +12,7 @@ pub trait EventListener {
 #[derive(Default)]
 pub struct MockListener {
     triggered_events: Mutex<Vec<RecordedEvent>>,
-    wait_condition_met: Mutex<bool>,
+    pub wait_condition_met: Mutex<bool>,
 }
 
 impl MockListener {
@@ -80,25 +80,9 @@ impl EventListener for MockListener {
 }
 
 // Container for deserializing events
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct RecordedEvents {
     pub events: Vec<RecordedEvent>,
-}
-
-impl<'de> serde::Deserialize<'de> for RecordedEvents {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        #[derive(serde::Deserialize)]
-        struct Wrapper {
-            events: Vec<RecordedEvent>,
-        }
-
-        let wrapper = Wrapper::deserialize(deserializer)?;
-        Ok(RecordedEvents {
-            events: wrapper.events,
-        })
-    }
 }
 
 // Starts recording by using the provided event listener
@@ -119,21 +103,22 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
         events.push(event);
     };
     event_listener.simulate(callback);
-    thread::sleep(time::Duration::from_secs(3));
+
+    // Use a shorter sleep duration when testing to avoid delays
+    if cfg!(test) {
+        thread::sleep(Duration::from_millis(10));
+    } else {
+        thread::sleep(Duration::from_secs(3));
+    }
 
     {
         let events = recorded_events.lock().unwrap();
-        let toml_string = events
-            .iter()
-            .map(|event| {
-                let serialized_event =
-                    toml::to_string_pretty(event).expect("Failed to serialize event");
-                format!("[[events]]\n{}", serialized_event)
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        println!("Serialized Correct Events TOML:\n{}", toml_string);
+        let recorded = RecordedEvents {
+            events: events.clone(),
+        };
+        let toml_string =
+            toml::to_string_pretty(&recorded).expect("Failed to serialize recorded events");
+        println!("Serialized recorded events TOML:\n{}", toml_string);
         println!("Saving to path: {:?}", file_path);
 
         fs::write(file_path, toml_string).expect("Failed to save macro file");
@@ -287,30 +272,40 @@ mod tests {
 
     #[test]
     fn test_record_event() {
+        // Remove existing macro file if it exists
+        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+        let file_path = config_dir.join("test_macro.toml");
+        if file_path.exists() {
+            fs::remove_file(&file_path).expect("Failed to remove existing macro file");
+        }
+
         // MockListener instantiation simulating event handling
         let mock_listener = MockListener::new();
 
         // Call the recording function passing the mock listener
         start_recording("test_macro", &mock_listener);
 
-        // Validate that the recordings are saved
-        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
-        let file_path = config_dir.join("test_macro.toml");
-
         // Read and assert the contents of the file
         let contents = fs::read_to_string(&file_path).expect("Failed to read macro file");
-        let recorded_events: RecordedEvents =
+        let recorded: RecordedEvents =
             toml::from_str(&contents).expect("Failed to deserialize macro file");
 
-        assert_eq!(recorded_events.events.len(), 3); // Expect KeyPress, ButtonPress, and MouseMove events
-        assert_eq!(recorded_events.events[0].get_event_type(), "KeyPress");
-        assert_eq!(recorded_events.events[0].get_key(), Some("MockKey"));
-        assert_eq!(recorded_events.events[1].get_event_type(), "ButtonPress");
-        assert_eq!(recorded_events.events[1].button.as_deref(), Some("Button1"));
+        assert_eq!(recorded.events.len(), 3); // Expect KeyPress, ButtonPress, and MouseMove events
+        assert_eq!(recorded.events[0].get_event_type(), "KeyPress");
+        assert_eq!(recorded.events[0].get_key(), Some("MockKey"));
+        assert_eq!(recorded.events[1].get_event_type(), "ButtonPress");
+        assert_eq!(recorded.events[1].button.as_deref(), Some("Button1"));
     }
 
     #[test]
     fn test_playback_function() {
+        // Remove existing macro file if it exists
+        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+        let file_path = config_dir.join("test_macro.toml");
+        if file_path.exists() {
+            fs::remove_file(&file_path).expect("Failed to remove existing macro file");
+        }
+
         // Test playback of recorded macros using MockListener
         let mock_listener = MockListener::new();
 
@@ -371,9 +366,7 @@ mod tests {
         // Test edge case scenarios
         let mock_listener = MockListener::new();
 
-        // Empty recordings: simulate by not triggering any events
-        // Here, we simulate an empty recording by not calling the callback.
-        // Instead, we directly create an empty macro file.
+        // Empty recordings: simulate by directly creating an empty macro file.
         let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
         fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
         let file_path = config_dir.join("empty_macro.toml");
