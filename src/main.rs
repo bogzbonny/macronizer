@@ -1,7 +1,10 @@
-use clap::{Arg, Command};
+use clap::{Arg, ArgMatches, Command};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::{thread, time};
+use std::{
+    sync::{Arc, Mutex},
+    thread, time,
+};
 
 // Mock trait for local event simulation
 trait EventListener {
@@ -59,10 +62,13 @@ fn start_recording(name: &str, event_listener: &impl EventListener) {
     let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
     let file_path = config_dir.join(format!("{}.toml", name));
 
-    let mut recorded_events = Vec::new();
+    // Use Arc<Mutex> for thread-safe mutation
+    let recorded_events = Arc::new(Mutex::new(Vec::new()));
+    let recorded_events_clone = Arc::clone(&recorded_events);
 
     let callback = move |event: RecordedEvent| {
-        recorded_events.push(event);
+        let mut events = recorded_events_clone.lock().unwrap();
+        events.push(event);
     };
 
     // Use mock listener
@@ -71,8 +77,9 @@ fn start_recording(name: &str, event_listener: &impl EventListener) {
     // Simulate recording duration or waiting before starting
     thread::sleep(time::Duration::from_secs(3));
 
-    // Serialize and save events
-    let toml_string = toml::to_string(&recorded_events).expect("Failed to serialize events");
+    // Serialize and save events after unlocking
+    let events = recorded_events.lock().unwrap();
+    let toml_string = toml::to_string(&*events).expect("Failed to serialize events");
     fs::write(file_path, toml_string).expect("Failed to save macro file");
 }
 
@@ -148,15 +155,15 @@ constant_wait_time = 100  # milliseconds
 
     // Handle subcommands
     match matches.subcommand() {
-        Some(("record", Some(sub_m))) => {
-            let name = sub_m.value_of("name").unwrap();
+        Some(("record", sub_m)) => {
+            let name = sub_m.get_one::<String>("name").unwrap();
             println!("Starting to record macro: {}", name);
             start_recording(name, &MockListener);
         }
-        Some(("run", Some(sub_m))) => {
-            let name = sub_m.value_of("name").unwrap();
+        Some(("run", sub_m)) => {
+            let name = sub_m.get_one::<String>("name").unwrap();
             let repeat = sub_m
-                .value_of("number")
+                .get_one::<String>("number")
                 .unwrap_or("1")
                 .parse::<u32>()
                 .unwrap();
