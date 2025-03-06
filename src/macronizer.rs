@@ -27,7 +27,7 @@ impl MockListener {
         let events = self.triggered_events.lock().unwrap();
         events
             .iter()
-            .any(|e| e.event_type == event_type && e.key.as_deref().unwrap_or("") == key)
+            .any(|e| e.event_type == event_type && e.button.as_deref().unwrap_or("") == key)
     }
 
     pub fn was_wait_condition_met(&self) -> bool {
@@ -50,6 +50,15 @@ impl EventListener for MockListener {
         };
 
         callback(key_press_event);
+
+        let button_press_event = RecordedEvent {
+            event_type: "ButtonPress".to_string(),
+            key: None,
+            button: Some("Button1".to_string()),
+            position: None,
+        };
+
+        callback(button_press_event);
     }
 
     fn simulate_event(&self, event: RecordedEvent) {
