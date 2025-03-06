@@ -853,7 +853,8 @@ dependencies = [
 [[package]]
 name = "tinyaudio"
 version = "1.1.0"
-source = "git+https://github.com/mrDIMAS/tinyaudio.git#19dd8ddfafadad63b4f466eb6766a564c28b0b25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e28f61bcbbeed46a2b3080aa12f480e059e7b319f79361f1b89af5e60d023cc9"
 dependencies = [
  "alsa-sys",
  "core-foundation-sys 0.8.7",

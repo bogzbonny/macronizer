@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{fs, io::Write, path::PathBuf};
+use std::{fs, io::Write};
 
 /// Settings for Macronizer
 #[derive(Debug, Serialize, Deserialize)]

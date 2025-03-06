@@ -11,6 +11,4 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 dirs = "*"
 mockall = "0.10"
-# Using tinyaudio with default features disabled to avoid ALSA issues in this environment
-# Removed unsupported "cpal" feature
-tinyaudio = { git = "https://github.com/mrDIMAS/tinyaudio.git", default-features = false }
+tinyaudio = "1.1.0"
