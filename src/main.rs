@@ -119,12 +119,12 @@ constant_wait_time = 100  # milliseconds
 
     // Handle subcommands
     match matches.subcommand() {
-        ("record", Some(sub_m)) => {
+        Some(("record", Some(sub_m))) => {
             let name = sub_m.value_of("name").unwrap();
             println!("Starting to record macro: {}", name);
             start_recording(name, &MockListener);
         }
-        ("run", Some(sub_m)) => {
+        Some(("run", Some(sub_m))) => {
             let name = sub_m.value_of("name").unwrap();
             let repeat = sub_m
                 .value_of("number")
