@@ -1,15 +1,14 @@
-use clap::{Arg, Command};
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
 
-// Mock trait for local event simulation
+// Event listener trait for simulating or handling real events
 pub trait EventListener {
     fn simulate(&self, callback: impl FnMut(RecordedEvent) + 'static + Send);
     fn simulate_event(&self, event: RecordedEvent);
 }
 
+// Mock implementation for testing and simulation
 pub struct MockListener {
     triggered_events: Mutex<Vec<RecordedEvent>>,
     wait_condition_met: Mutex<bool>,
@@ -47,13 +46,13 @@ impl MockListener {
 
 impl EventListener for MockListener {
     fn simulate(&self, mut callback: impl FnMut(RecordedEvent) + 'static + Send) {
+        // Simulate a set of predefined events
         let key_press_event = RecordedEvent {
             event_type: "KeyPress".to_string(),
             key: Some("MockKey".to_string()),
             button: None,
             position: None,
         };
-
         callback(key_press_event);
 
         let button_press_event = RecordedEvent {
@@ -62,7 +61,6 @@ impl EventListener for MockListener {
             button: Some("Button1".to_string()),
             position: None,
         };
-
         callback(button_press_event);
 
         // Simulate a mouse movement
@@ -70,7 +68,7 @@ impl EventListener for MockListener {
             event_type: "MouseMove".to_string(),
             key: None,
             button: None,
-            position: Some((100.0, 150.0)), // Ensure float precision matches with test expectations
+            position: Some((100.0, 150.0)),
         };
         callback(mouse_move_event);
     }
@@ -80,16 +78,17 @@ impl EventListener for MockListener {
     }
 }
 
+// Container for deserializing events
 pub struct RecordedEvents {
     pub events: Vec<RecordedEvent>,
 }
 
-impl<'de> Deserialize<'de> for RecordedEvents {
+impl<'de> serde::Deserialize<'de> for RecordedEvents {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Deserialize)]
+        #[derive(serde::Deserialize)]
         struct Wrapper {
             events: Vec<RecordedEvent>,
         }
@@ -101,11 +100,11 @@ impl<'de> Deserialize<'de> for RecordedEvents {
     }
 }
 
+// Starts recording by using the provided event listener
 pub fn start_recording(name: &str, event_listener: &impl EventListener) {
     println!("Recording macro: {}", name);
     let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
 
-    // Create macros directory if it does not exist
     fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
 
     let file_path = config_dir.join(format!("{}.toml", name));
@@ -123,8 +122,6 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
 
     {
         let events = recorded_events.lock().unwrap();
-
-        // Refine format for TOML making sure no escape characters are mis-used
         let toml_string = events
             .iter()
             .map(|event| {
@@ -133,35 +130,26 @@ pub fn start_recording(name: &str, event_listener: &impl EventListener) {
                 format!("[[events]]\n{}", serialized_event)
             })
             .collect::<Vec<String>>()
-            .join(
-                "
-",
-            ); // Ensure correct line separation
+            .join("\n");
 
-        println!(
-            "Serialized Correct Events TOML:
-{}",
-            toml_string
-        );
-
+        println!("Serialized Correct Events TOML:\n{}", toml_string);
         println!("Saving to path: {:?}", file_path);
 
         fs::write(file_path, toml_string).expect("Failed to save macro file");
     }
 }
 
+// Starts playback by deserializing events and passing them to the provided event listener
 pub fn start_playback(name: &str, event_listener: &impl EventListener) {
     println!("Playing back macro: {}", name);
     let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
 
-    // Create macros directory if it does not exist
     fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
 
     let file_path = config_dir.join(format!("{}.toml", name));
 
     let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
 
-    // Deserialize into RecordedEvents
     let recorded_events: RecordedEvents =
         toml::from_str(&contents).expect("Failed to deserialize macro file");
 
@@ -172,7 +160,7 @@ pub fn start_playback(name: &str, event_listener: &impl EventListener) {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
 pub struct RecordedEvent {
     pub event_type: String,
     pub key: Option<String>,
@@ -230,4 +218,61 @@ pub fn simulate_mouse_movement(listener: &MockListener, x: i32, y: i32) {
         button: None,
         position: Some((x as f64, y as f64)),
     });
+    println!("Simulated mouse movement to: {}-{}", x, y);
+}
+
+// New implementation using rdev for real event handling
+extern crate rdev;
+
+pub struct RdevListener;
+
+impl RdevListener {
+    pub fn new() -> Self {
+        RdevListener {}
+    }
+}
+
+impl EventListener for RdevListener {
+    fn simulate(&self, mut callback: impl FnMut(RecordedEvent) + 'static + Send) {
+        // Use rdev::listen to receive real events
+        if let Err(e) = rdev::listen(move |event| {
+            let pos = match event.event_type {
+                rdev::EventType::MouseMove { x, y } => Some((x, y)),
+                _ => None,
+            };
+            let recorded = RecordedEvent {
+                event_type: format!("{:?}", event.event_type),
+                key: None,    // Placeholder: Add proper conversion if needed
+                button: None, // Placeholder conversion
+                position: pos,
+            };
+            callback(recorded);
+        }) {
+            eprintln!("Error in real event listener: {:?}", e);
+        }
+    }
+
+    fn simulate_event(&self, event: RecordedEvent) {
+        use rdev::{simulate, Button, EventType, Key};
+        let rdev_event = match event.event_type.as_str() {
+            "KeyPress" => EventType::KeyPress(Key::Unknown(0)),
+            "KeyRelease" => EventType::KeyRelease(Key::Unknown(0)),
+            "ButtonPress" => EventType::ButtonPress(Button::Left),
+            "ButtonRelease" => EventType::ButtonRelease(Button::Left),
+            "MouseMove" => {
+                if let Some((x, y)) = event.position {
+                    EventType::MouseMove { x, y }
+                } else {
+                    EventType::MouseMove { x: 0.0, y: 0.0 }
+                }
+            }
+            _ => {
+                // Fallback to a no-op event; adjust as needed
+                EventType::MouseMove { x: 0.0, y: 0.0 }
+            }
+        };
+        if let Err(e) = simulate(&rdev_event) {
+            eprintln!("Error simulating real event: {:?}", e);
+        }
+    }
 }
