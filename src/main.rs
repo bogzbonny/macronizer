@@ -8,6 +8,33 @@ mod settings;
 use macronizer::{start_playback, start_recording, MockListener, RdevListener};
 use settings::load_settings;
 
+// Import tinyaudio for playing the bell sound
+use tinyaudio::{Player, Sound};
+
+/// Plays a short bell noise using tinyaudio.
+fn play_bell() {
+    // Parameters for the bell sound
+    let sample_rate = 44100;
+    let frequency = 880.0; // Higher pitch for bell-like sound
+    let duration_secs = 0.3; // 0.3 second duration
+    let num_samples = (sample_rate as f32 * duration_secs) as usize;
+
+    // Generate a sine wave
+    let samples: Vec<f32> = (0..num_samples)
+        .map(|i| {
+            let t = i as f32 / sample_rate as f32;
+            (2.0 * std::f32::consts::PI * frequency * t).sin()
+        })
+        .collect();
+
+    // Create a Sound from the generated samples
+    let sound = Sound::from_pcm(samples, sample_rate as u32, 1);
+
+    // Create a default audio player and play the sound
+    let player = Player::default();
+    player.play(sound);
+}
+
 fn main() {
     // Establish configuration directories
     let config_dir = dirs::config_dir().unwrap().join("macronizer");
@@ -75,6 +102,8 @@ fn main() {
                 println!("Recording starts in {}...", i);
                 thread::sleep(Duration::from_secs(1));
             }
+            // Play bell sound to indicate recording has begun
+            play_bell();
             println!("Recording started!");
 
             if use_real {
