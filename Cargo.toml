@@ -4,12 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rdev = {version = "0.5", features = ["serialize"]}
-clap = "4.0"
+rdev = {version = "0.5.3", features = ["serialize"]}
+clap = "4.5.31"
 config = { version = "0.15.6", features = ["toml", "convert-case"] }
-dirs = "*"
 toml = "0.8.20"
 serde = { version = "1.0.218", features = ["derive"] }
-anyhow = "1"
+anyhow = "1.0.97"
 home = "0.5.11"
 actually_beep = "0.1.1"

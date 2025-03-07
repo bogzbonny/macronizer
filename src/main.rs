@@ -6,20 +6,12 @@ use {
     anyhow::Error,
     clap::Command,
     macronizer::*,
-    std::fs,
     std::{thread, time::Duration},
 };
 
 fn main() -> Result<(), Error> {
-    // Establish configuration directories
-    let config_dir = dirs::config_dir().unwrap().join("macronizer");
-    let macros_dir = config_dir.join("macros");
-    fs::create_dir_all(&macros_dir).expect("Failed to create macros directory");
-
-    // Load config (this will create the file with defaults if needed)
     let cfg = Config::load()?;
 
-    // Setup CLI with clap
     let matches = Command::new("macronizer")
         .version("0.1.0")
         .author("Author Name <email@example.com>")
