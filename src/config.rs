@@ -63,7 +63,6 @@ fn default_recording_initial_wait_ms() -> u64 {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-#[serde(tag = "type")]
 pub enum WaitStrategy {
     /// record actual time between events and put that in there
     Actual,
