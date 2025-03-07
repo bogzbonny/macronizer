@@ -8,7 +8,6 @@ use {
     macronizer::*,
     std::fs,
     std::{thread, time::Duration},
-    tinyaudio::prelude::*,
 };
 
 fn main() -> Result<(), Error> {
@@ -26,15 +25,13 @@ fn main() -> Result<(), Error> {
         .author("Author Name <email@example.com>")
         .about("Records and plays back system-wide keyboard and mouse events")
         .subcommand(
-            Command::new("record")
-                .about("Starts recording a macro")
-                .arg(
-                    // Name of macro
-                    clap::Arg::new("name")
-                        .help("Name of the macro to record")
-                        .required(true)
-                        .index(1),
-                ),
+            Command::new("rec").about("Starts recording a macro").arg(
+                // Name of macro
+                clap::Arg::new("name")
+                    .help("Name of the macro to record")
+                    .required(true)
+                    .index(1),
+            ),
         )
         .subcommand(
             Command::new("run")
@@ -56,18 +53,26 @@ fn main() -> Result<(), Error> {
 
     // Handle subcommands
     match matches.subcommand() {
-        Some(("record", sub_m)) => {
+        Some(("rec", sub_m)) => {
             let name = sub_m.get_one::<String>("name").unwrap();
             let secs = cfg.countdown_seconds;
-            print!("Beginning recording, default mapping for ending the recording is Esc+Esc+Esc");
-            print!("Recording starts in...");
+            println!(
+                "Beginning recording, default mapping for ending the recording is Esc+Esc+Esc"
+            );
+            println!("Recording starts in...");
             for i in (1..=secs).rev() {
-                print!(" {}...", i);
+                println!("{}...", i);
                 thread::sleep(Duration::from_millis(950));
-                play_ding(); // waits 100ms
             }
-            println!("!");
-            start_recording(&cfg, name);
+            println!("Start!");
+            let middle_e_hz = 329;
+            let a_bit_more_than_a_second_and_a_half_ms = 100;
+            actually_beep::beep_with_hz_and_millis(
+                middle_e_hz,
+                a_bit_more_than_a_second_and_a_half_ms,
+            )
+            .unwrap();
+            record(&cfg, name.to_string());
         }
         Some(("run", sub_m)) => {
             let name = sub_m.get_one::<String>("name").unwrap();
@@ -76,7 +81,7 @@ fn main() -> Result<(), Error> {
                 .map_or("1".to_string(), |v| v.to_string())
                 .parse::<u32>()
                 .unwrap();
-            println!("Running macro: {} for {} times", name, repeat);
+            println!("Running macro: {} for {} time(s)", name, repeat);
             for _ in 0..repeat {
                 start_playback(&cfg, name);
             }
@@ -84,32 +89,6 @@ fn main() -> Result<(), Error> {
         _ => {}
     }
     Ok(())
-}
-
-fn play_ding() {
-    let params = OutputDeviceParameters {
-        channels_count: 2,
-        sample_rate: 44100,
-        channel_sample_count: 4410,
-    };
-    let _device = run_output_device(params, {
-        let mut clock = 0f32;
-        move |data| {
-            for samples in data.chunks_mut(params.channels_count) {
-                clock = (clock + 1.0) % params.sample_rate as f32;
-                // Create a short, decaying sine wave at 880Hz (A5)
-                let envelope = (-clock * 0.01).exp();
-                let value = envelope
-                    * (clock * 880.0 * 2.0 * std::f32::consts::PI / params.sample_rate as f32)
-                        .sin();
-                for sample in samples {
-                    *sample = value;
-                }
-            }
-        }
-    })
-    .unwrap();
-    std::thread::sleep(std::time::Duration::from_millis(100));
 }
 
 //#[cfg(test)]
