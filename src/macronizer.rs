@@ -1,378 +1,128 @@
-use std::fs;
-use std::sync::{Arc, Mutex};
-use std::{thread, time::Duration};
-
-// Event listener trait for simulating or handling real events
-pub trait EventListener {
-    fn simulate(&self, callback: impl FnMut(RecordedEvent) + 'static + Send);
-    fn simulate_event(&self, event: RecordedEvent);
-}
-
-// Mock implementation for testing and simulation
-#[derive(Default)]
-pub struct MockListener {
-    triggered_events: Mutex<Vec<RecordedEvent>>,
-    pub wait_condition_met: Mutex<bool>,
-}
-
-impl MockListener {
-    pub fn new() -> Self {
-        MockListener {
-            triggered_events: Mutex::new(Vec::new()),
-            wait_condition_met: Mutex::new(false),
-        }
-    }
-
-    pub fn was_event_triggered(&self, event_type: &str, identifier: &str) -> bool {
-        let events = self.triggered_events.lock().unwrap();
-        events.iter().any(|e| {
-            e.event_type == event_type
-                && (e.key.as_deref().unwrap_or("") == identifier
-                    || e.button.as_deref().unwrap_or("") == identifier
-                    || e.position.map_or(false, |pos| {
-                        format!("{}-{}", pos.0.round(), pos.1.round()) == identifier
-                    }))
-        })
-    }
-
-    pub fn was_wait_condition_met(&self) -> bool {
-        *self.wait_condition_met.lock().unwrap()
-    }
-
-    pub fn get_triggered_events_len(&self) -> usize {
-        let events = self.triggered_events.lock().unwrap();
-        events.len()
-    }
-}
-
-impl EventListener for MockListener {
-    fn simulate(&self, mut callback: impl FnMut(RecordedEvent) + 'static + Send) {
-        // Simulate a set of predefined events
-        let key_press_event = RecordedEvent {
-            event_type: "KeyPress".to_string(),
-            key: Some("MockKey".to_string()),
-            button: None,
-            position: None,
-        };
-        callback(key_press_event);
-
-        let button_press_event = RecordedEvent {
-            event_type: "ButtonPress".to_string(),
-            key: None,
-            button: Some("Button1".to_string()),
-            position: None,
-        };
-        callback(button_press_event);
-
-        // Simulate a mouse movement
-        let mouse_move_event = RecordedEvent {
-            event_type: "MouseMove".to_string(),
-            key: None,
-            button: None,
-            position: Some((100.0, 150.0)),
-        };
-        callback(mouse_move_event);
-    }
-
-    fn simulate_event(&self, event: RecordedEvent) {
-        self.triggered_events.lock().unwrap().push(event);
-    }
-}
+use {
+    crate::config::{self, Config},
+    rdev::EventType,
+    std::cell::RefCell,
+    std::rc::Rc,
+    std::{
+        fs,
+        sync::{Arc, Mutex},
+        {thread, time::Duration},
+    },
+};
 
 // Container for deserializing events
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
-pub struct RecordedEvents {
-    pub events: Vec<RecordedEvent>,
-}
+#[derive(serde::Deserialize, serde::Serialize, Default, Debug, Clone)]
+pub struct RecordedEvents(pub Vec<Event>);
 
 // Starts recording by using the provided event listener
-pub fn start_recording(name: &str, event_listener: &impl EventListener) {
-    println!("Recording macro: {}", name);
-    let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+pub fn start_recording(cfg: &Config, name: &str) {
+    let macros_dir = config::macros_path();
+    fs::create_dir_all(&macros_dir).expect("Failed to create macros directory");
 
-    fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
+    let file_path = macros_dir.join(format!("{name}.toml"));
 
-    let file_path = config_dir.join(format!("{}.toml", name));
+    let mut events = Rc::new(RefCell::new(RecordedEvents::default()));
 
-    let recorded_events = Arc::new(Mutex::new(Vec::new()));
-    let recorded_events_clone = Arc::clone(&recorded_events);
-
-    let callback = move |event: RecordedEvent| {
-        let mut events = recorded_events_clone.lock().unwrap();
-        println!("Recording event: {:?}", event);
-        events.push(event);
-    };
-    event_listener.simulate(callback);
-
-    // Use a shorter sleep duration when testing to avoid delays
-    if cfg!(test) {
-        thread::sleep(Duration::from_millis(10));
-    } else {
-        thread::sleep(Duration::from_secs(3));
-    }
-
-    {
-        let events = recorded_events.lock().unwrap();
-        let recorded = RecordedEvents {
-            events: events.clone(),
+    let mut callback = move |event: rdev::Event| {
+        let op_ev = match event.event_type {
+            EventType::KeyPress(_) => None,
+            EventType::KeyRelease(key) => Some(Event::Keystroke(key)),
+            EventType::ButtonPress(button) => Some(Event::MousePress(0, 0, button)),
+            EventType::ButtonRelease(button) => Some(Event::MouseRelease(0, 0, button)),
+            EventType::MouseMove { x, y } => Some(Event::MouseMove(x as i32, y as i32)),
+            EventType::Wheel {
+                delta_x: _,
+                delta_y: _,
+            } => None,
         };
-        let toml_string =
-            toml::to_string_pretty(&recorded).expect("Failed to serialize recorded events");
-        println!("Serialized recorded events TOML:\n{}", toml_string);
-        println!("Saving to path: {:?}", file_path);
-
-        fs::write(file_path, toml_string).expect("Failed to save macro file");
+        if let Some(ev) = op_ev {
+            events.borrow_mut().0.push(ev);
+        }
+    };
+    if let Err(e) = rdev::listen(move |event| callback(event)) {
+        eprintln!("Error in real event listener: {:?}", e);
     }
+
+    let toml_string = toml::to_string_pretty(&events).expect("Failed to serialize recorded events");
+    fs::write(file_path, toml_string).expect("Failed to save macro file");
 }
 
 // Starts playback by deserializing events and passing them to the provided event listener
-pub fn start_playback(name: &str, event_listener: &impl EventListener) {
-    println!("Playing back macro: {}", name);
-    let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
+pub fn start_playback(_cfg: &Config, name: &str) {
+    let macros_dir = config::macros_path();
+    let file_path = macros_dir.join(format!("{}.toml", name));
 
-    fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
+    // get the macro for the name and deserialize it
 
-    let file_path = config_dir.join(format!("{}.toml", name));
+    let Ok(contents) = fs::read_to_string(file_path) else {
+        println!("Macro not found");
+        return;
+    };
 
-    let contents = fs::read_to_string(file_path).expect("Failed to read macro file");
+    let evs: RecordedEvents = match toml::from_str(&contents) {
+        Ok(evs) => evs,
+        Err(e) => {
+            println!("Failed to deserialize macro file: {:?}", e);
+            return;
+        }
+    };
 
-    let recorded_events: RecordedEvents =
-        toml::from_str(&contents).expect("Failed to deserialize macro file");
-
-    println!("Deserialized Events: {:?}", recorded_events.events);
-
-    for event in recorded_events.events {
-        event_listener.simulate_event(event);
+    for ev in evs.0 {
+        // TODO check for stop
+        ev.simulate();
     }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
-pub struct RecordedEvent {
-    pub event_type: String,
-    pub key: Option<String>,
-    pub button: Option<String>,
-    pub position: Option<(f64, f64)>,
+pub enum Event {
+    /// keystroke event  
+    Keystroke(rdev::Key),
+    /// x, y, button
+    MousePress(i32, i32, rdev::Button),
+    MouseMove(i32, i32),
+    MouseRelease(i32, i32, rdev::Button),
+    /// wait in milliseconds
+    Wait(u64),
 }
 
-impl RecordedEvent {
-    pub fn get_event_type(&self) -> &str {
-        &self.event_type
-    }
-
-    pub fn get_key(&self) -> Option<&str> {
-        self.key.as_deref()
-    }
-}
-
-pub fn handle_stop_keystroke(listener: &MockListener) {
-    listener.simulate_event(RecordedEvent {
-        event_type: "Stop".to_string(),
-        key: None,
-        button: None,
-        position: None,
-    });
-}
-
-pub fn simulate_wait(listener: &MockListener) {
-    let mut wait_met = listener.wait_condition_met.lock().unwrap();
-    *wait_met = true;
-}
-
-pub fn simulate_button_press(listener: &MockListener, button: &str) {
-    listener.simulate_event(RecordedEvent {
-        event_type: "ButtonPress".to_string(),
-        key: None,
-        button: Some(button.to_string()),
-        position: None,
-    });
-    println!("Simulated ButtonPress: {}", button);
-}
-
-pub fn simulate_button_release(listener: &MockListener, button: &str) {
-    listener.simulate_event(RecordedEvent {
-        event_type: "ButtonRelease".to_string(),
-        key: None,
-        button: Some(button.to_string()),
-        position: None,
-    });
-}
-
-pub fn simulate_mouse_movement(listener: &MockListener, x: i32, y: i32) {
-    listener.simulate_event(RecordedEvent {
-        event_type: "MouseMove".to_string(),
-        key: None,
-        button: None,
-        position: Some((x as f64, y as f64)),
-    });
-    println!("Simulated mouse movement to: {}-{}", x, y);
-}
-
-// New implementation using rdev for real event handling
-extern crate rdev;
-
-pub struct RdevListener;
-
-impl RdevListener {
-    pub fn new() -> Self {
-        RdevListener {}
-    }
-}
-
-impl EventListener for RdevListener {
-    fn simulate(&self, mut callback: impl FnMut(RecordedEvent) + 'static + Send) {
-        // Use rdev::listen to receive real events
-        if let Err(e) = rdev::listen(move |event| {
-            let pos = match event.event_type {
-                rdev::EventType::MouseMove { x, y } => Some((x, y)),
-                _ => None,
-            };
-            let recorded = RecordedEvent {
-                event_type: format!("{:?}", event.event_type),
-                key: None,    // Placeholder: Add proper conversion if needed
-                button: None, // Placeholder conversion
-                position: pos,
-            };
-            callback(recorded);
-        }) {
-            eprintln!("Error in real event listener: {:?}", e);
-        }
-    }
-
-    fn simulate_event(&self, event: RecordedEvent) {
-        use rdev::{simulate, Button, EventType, Key};
-        let rdev_event = match event.event_type.as_str() {
-            "KeyPress" => EventType::KeyPress(Key::Unknown(0)),
-            "KeyRelease" => EventType::KeyRelease(Key::Unknown(0)),
-            "ButtonPress" => EventType::ButtonPress(Button::Left),
-            "ButtonRelease" => EventType::ButtonRelease(Button::Left),
-            "MouseMove" => {
-                if let Some((x, y)) = event.position {
-                    EventType::MouseMove { x, y }
-                } else {
-                    EventType::MouseMove { x: 0.0, y: 0.0 }
-                }
+impl Event {
+    pub fn simulate(&self) {
+        match self {
+            Event::Keystroke(key) => {
+                let ev_type = rdev::EventType::KeyPress(*key);
+                rdev::simulate(&ev_type).unwrap();
+                thread::sleep(std::time::Duration::from_millis(1));
+                let ev_type = rdev::EventType::KeyRelease(*key);
+                rdev::simulate(&ev_type).unwrap();
             }
-            _ => {
-                // Fallback to a no-op event; adjust as needed
-                EventType::MouseMove { x: 0.0, y: 0.0 }
+            Event::MousePress(x, y, button) => {
+                let ev_type = rdev::EventType::MouseMove {
+                    x: *x as f64,
+                    y: *y as f64,
+                };
+                rdev::simulate(&ev_type).unwrap();
+                thread::sleep(std::time::Duration::from_millis(1));
+                let ev_type = rdev::EventType::ButtonPress(*button);
+                rdev::simulate(&ev_type).unwrap();
             }
-        };
-        if let Err(e) = simulate(&rdev_event) {
-            eprintln!("Error simulating real event: {:?}", e);
+            Event::MouseMove(x, y) => {
+                let ev_type = rdev::EventType::MouseMove {
+                    x: *x as f64,
+                    y: *y as f64,
+                };
+                rdev::simulate(&ev_type).unwrap();
+            }
+            Event::MouseRelease(x, y, button) => {
+                let ev_type = rdev::EventType::MouseMove {
+                    x: *x as f64,
+                    y: *y as f64,
+                };
+                rdev::simulate(&ev_type).unwrap();
+                thread::sleep(std::time::Duration::from_millis(1));
+                let ev_type = rdev::EventType::ButtonRelease(*button);
+                rdev::simulate(&ev_type).unwrap();
+            }
+            Event::Wait(ms) => std::thread::sleep(std::time::Duration::from_millis(*ms)),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-    use std::thread;
-    use std::time::Duration;
-
-    #[test]
-    fn test_record_event() {
-        // Remove existing macro file if it exists
-        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
-        let file_path = config_dir.join("test_macro.toml");
-        if file_path.exists() {
-            fs::remove_file(&file_path).expect("Failed to remove existing macro file");
-        }
-
-        // MockListener instantiation simulating event handling
-        let mock_listener = MockListener::new();
-
-        // Call the recording function passing the mock listener
-        start_recording("test_macro", &mock_listener);
-
-        // Read and assert the contents of the file
-        let contents = fs::read_to_string(&file_path).expect("Failed to read macro file");
-        let recorded: RecordedEvents =
-            toml::from_str(&contents).expect("Failed to deserialize macro file");
-
-        assert_eq!(recorded.events.len(), 3); // Expect KeyPress, ButtonPress, and MouseMove events
-        assert_eq!(recorded.events[0].get_event_type(), "KeyPress");
-        assert_eq!(recorded.events[0].get_key(), Some("MockKey"));
-        assert_eq!(recorded.events[1].get_event_type(), "ButtonPress");
-        assert_eq!(recorded.events[1].button.as_deref(), Some("Button1"));
-    }
-
-    #[test]
-    fn test_playback_function() {
-        // Remove existing macro file if it exists
-        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
-        let file_path = config_dir.join("test_macro.toml");
-        if file_path.exists() {
-            fs::remove_file(&file_path).expect("Failed to remove existing macro file");
-        }
-
-        // Test playback of recorded macros using MockListener
-        let mock_listener = MockListener::new();
-
-        // Ensure the macro file exists by recording first
-        start_recording("test_macro", &mock_listener);
-        // Wait a bit to ensure file system has written the file
-        thread::sleep(Duration::from_secs(1));
-
-        // Now call playback
-        start_playback("test_macro", &mock_listener);
-
-        // Validate playback correctness with assertions
-        assert!(mock_listener.was_event_triggered("KeyPress", "MockKey"));
-    }
-
-    #[test]
-    fn test_handle_stop_keystrokes() {
-        // Simulate stop keystroke handling
-        let mock_listener = MockListener::new();
-
-        // Assume function for handling stop exists
-        handle_stop_keystroke(&mock_listener);
-
-        // Validate that the stop was triggered
-        assert!(mock_listener.was_event_triggered("Stop", ""));
-    }
-
-    #[test]
-    fn test_wait_strategies() {
-        // Simulate wait strategies
-        let mock_listener = MockListener::new();
-
-        // Assume functions for wait strategies exist
-        simulate_wait(&mock_listener);
-
-        // Validate correct handling
-        assert!(mock_listener.was_wait_condition_met());
-    }
-
-    #[test]
-    fn test_simulated_event_types() {
-        // Simulate different event types like button presses, releases, etc.
-        let mock_listener = MockListener::new();
-
-        // Assert each type by simulation
-        simulate_button_press(&mock_listener, "Button1");
-        simulate_button_release(&mock_listener, "Button1");
-        simulate_mouse_movement(&mock_listener, 100, 150);
-
-        // Validate correctness
-        assert!(mock_listener.was_event_triggered("ButtonPress", "Button1"));
-        assert!(mock_listener.was_event_triggered("ButtonRelease", "Button1"));
-        assert!(mock_listener.was_event_triggered("MouseMove", "100-150"));
-    }
-
-    #[test]
-    fn test_edge_cases() {
-        // Test edge case scenarios
-        let mock_listener = MockListener::new();
-
-        // Empty recordings: simulate by directly creating an empty macro file.
-        let config_dir = dirs::config_dir().unwrap().join("macronizer/macros");
-        fs::create_dir_all(&config_dir).expect("Failed to create macros directory");
-        let file_path = config_dir.join("empty_macro.toml");
-        fs::write(&file_path, "").expect("Failed to write empty macro file");
-
-        // There should be no triggered events in the listener
-        assert_eq!(mock_listener.get_triggered_events_len(), 0);
     }
 }
