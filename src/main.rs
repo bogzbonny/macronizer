@@ -6,7 +6,7 @@ use {
     anyhow::Error,
     clap::Command,
     macronizer::*,
-    std::{fs, thread, time::Duration},
+    std::{thread, time::Duration},
 };
 
 fn main() -> Result<(), Error> {
