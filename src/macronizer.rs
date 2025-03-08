@@ -13,7 +13,14 @@ pub struct RecordedEvents {
 // Starts recording by using the provided event listener
 pub fn record(cfg: &Config, name: String) {
     let events = Rc::new(RefCell::new(RecordedEvents::default()));
-    let mouse_pos = Rc::new(RefCell::new((0.0, 0.0)));
+
+    // populate the starting mouse position
+    let device_state = device_query::DeviceState::new();
+    let mouse: device_query::MouseState = device_state.query_pointer();
+    let (x, y) = mouse.coords;
+
+    let mouse_pos = Rc::new(RefCell::new((x as f64, y as f64)));
+
     let mouse_pressed = Rc::new(RefCell::new(false));
     let recent_keys = Rc::new(RefCell::new(Vec::new()));
     let last_event_time = Rc::new(RefCell::new(None::<Instant>));
@@ -39,10 +46,10 @@ pub fn record(cfg: &Config, name: String) {
                 Some(Event::KeyRelease(key))
             }
             EventType::ButtonPress(button) => {
-                println!("adding event: mousepress {:?}", button);
+                let m = *mouse_pos.borrow();
+                println!("adding event: mouse press {button:?} at {m:?}");
                 recent_keys_.replace(Vec::new());
                 mouse_pressed.replace(true);
-                let m = *mouse_pos.borrow();
                 Some(Event::MousePress(MouseEventButton {
                     x: m.0,
                     y: m.1,
@@ -50,10 +57,10 @@ pub fn record(cfg: &Config, name: String) {
                 }))
             }
             EventType::ButtonRelease(button) => {
-                println!("adding event: mouserelease {:?}", button);
+                let m = *mouse_pos.borrow();
+                println!("adding event: mouse release {button:?} at {m:?}");
                 recent_keys_.replace(Vec::new());
                 mouse_pressed.replace(false);
-                let m = *mouse_pos.borrow();
                 Some(Event::MouseRelease(MouseEventButton {
                     x: m.0,
                     y: m.1,
@@ -61,7 +68,7 @@ pub fn record(cfg: &Config, name: String) {
                 }))
             }
             EventType::MouseMove { x, y } => {
-                println!("adding event: mousemove {:?}", (x, y));
+                println!("adding event mousemove (x, y):  {:?}", (x, y));
                 mouse_pos.replace((x, y));
                 recent_keys_.replace(Vec::new());
                 if cfg_.record_non_drag_mouse_moves || *mouse_pressed.borrow() {
