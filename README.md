@@ -42,8 +42,11 @@ macronizer run mymacro 3
     event.
 
 ## TODO
-- inline mini TUI
+- inline mini TUI manager to run, edit, rename, delete, macros
 - Usage of positional parameters, for instance mouse positions should be able to
   be "50%" of the screen
 - Ability to pass in custom arguments which are used for specific wait times for
   instance, or screen positions for that matter
+- settings command to open the settings file with $EDITOR
+- edit command to open the macro in $EDITOR
+- overwrite configuration options with flags
