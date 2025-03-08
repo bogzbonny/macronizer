@@ -42,4 +42,9 @@ macronizer run mymacro 3
     event.
 
 ## TODO
-- ability to add notes to the macros 
+- inline mini TUI
+- ability to add notes to the macros (will be stored right in the macro file)
+- Usage of positional parameters, for instance mouse positions should be able to
+  be "50%" of the screen
+- Ability to pass in custom arguments which are used for specific wait times for
+  instance, or screen positions for that matter
