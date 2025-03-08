@@ -41,3 +41,7 @@ macronizer run mymacro 3
   - **Constant Wait**: Uses a predefined constant wait time uniformly after each
     event.
 
+## TODO
+- `macronizer ls` to list macros
+- warn on macro overwrites
+- ability to add notes to the macros 

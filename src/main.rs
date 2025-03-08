@@ -74,6 +74,20 @@ fn main() -> Result<(), Error> {
                 .parse::<u32>()
                 .unwrap();
             println!("Running macro: {} for {} time(s)", name, repeat);
+            let secs = cfg.countdown_seconds;
+            println!("Playback starts in...");
+            for i in (1..=secs).rev() {
+                println!("{}...", i);
+                thread::sleep(Duration::from_millis(950));
+            }
+            println!("Begin!");
+            let middle_e_hz = 329;
+            let a_bit_more_than_a_second_and_a_half_ms = 100;
+            actually_beep::beep_with_hz_and_millis(
+                middle_e_hz,
+                a_bit_more_than_a_second_and_a_half_ms,
+            )
+            .unwrap();
             for _ in 0..repeat {
                 start_playback(&cfg, name);
             }

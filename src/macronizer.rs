@@ -122,6 +122,15 @@ pub fn record(cfg: &Config, name: String) {
             let file_path = macros_dir.join(format!("{name}.toml"));
             fs::write(file_path, toml_string).expect("Failed to save macro file");
 
+            // beep to let the user know we're done
+            let middle_e_hz = 329;
+            let a_bit_more_than_a_second_and_a_half_ms = 100;
+            actually_beep::beep_with_hz_and_millis(
+                middle_e_hz,
+                a_bit_more_than_a_second_and_a_half_ms,
+            )
+            .unwrap();
+
             // exit with a silent panic (as you can't exit the listen loop within rdev currently)
             let _ = std::fs::File::create("/dev/null").map(|_f| -> Result<(), std::io::Error> {
                 std::panic::set_hook(Box::new(|_| {})); // Silence panic
