@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 rdev = {version = "0.5.3", features = ["serialize"]}
-clap = "4.5.31"
+clap = {version = "4.5.31", features = ["derive"]}
 config = { version = "0.15.6", features = ["toml", "convert-case"] }
 toml = "0.8.20"
 serde = { version = "1.0.218", features = ["derive"] }
