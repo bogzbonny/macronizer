@@ -5,9 +5,7 @@ stored as `.toml` files in the directory: `~/.config/macronizer/macros/` and can
 manually edited.
 
 ## Installation
-```bash
-cargo install macronizer
-```
+currently unreleased - so pull code and `cargo install --path .`
 
 also see: https://github.com/Narsil/rdev?tab=readme-ov-file#os-caveats
 
