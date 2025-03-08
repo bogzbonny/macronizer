@@ -6,7 +6,7 @@ use {
     anyhow::Error,
     clap::Command,
     macronizer::*,
-    std::{thread, time::Duration},
+    std::{fs, thread, time::Duration},
 };
 
 fn main() -> Result<(), Error> {
@@ -73,6 +73,14 @@ fn main() -> Result<(), Error> {
                 .map_or("1".to_string(), |v| v.to_string())
                 .parse::<u32>()
                 .unwrap();
+
+            let macros_dir = config::macros_path();
+            let file_path = macros_dir.join(format!("{}.toml", name));
+            if !file_path.exists() {
+                eprintln!("macro \"{name}\" not found");
+                return Ok(());
+            }
+
             println!("Running macro: {} for {} time(s)", name, repeat);
             let secs = cfg.countdown_seconds;
             println!("Playback starts in...");
