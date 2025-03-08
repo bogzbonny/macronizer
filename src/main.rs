@@ -23,6 +23,10 @@ enum Commands {
         /// Name of the macro to record
         name: String,
 
+        /// Add a description to the macro
+        #[arg(short, long, default_value = "add a description")]
+        desc: String,
+
         /// Allow overwriting existing macro
         #[arg(short, long)]
         overwrite: bool,
@@ -51,7 +55,11 @@ fn main() -> Result<(), Error> {
 
     // Handle subcommands
     match &cli.command {
-        Commands::Rec { name, overwrite } => {
+        Commands::Rec {
+            name,
+            desc,
+            overwrite,
+        } => {
             if !*overwrite {
                 // if overwrite is not set, check if file exists and prevent overwriting
                 let macros_dir = config::macros_path();
@@ -79,7 +87,7 @@ fn main() -> Result<(), Error> {
                 a_bit_more_than_a_second_and_a_half_ms,
             )
             .unwrap();
-            record(&cfg, name.to_string());
+            record(&cfg, name.to_string(), desc.to_string());
         }
         Commands::Run { name, repeat } => {
             let macros_dir = config::macros_path();
@@ -115,12 +123,32 @@ fn main() -> Result<(), Error> {
                 let entry = entry.expect("Failed to read macros directory entry");
                 let path = entry.path();
                 if path.is_file() && path.extension().is_some() {
+                    // get the description from the toml file
+                    let contents = fs::read_to_string(&path).expect("Failed to read file");
+                    let evs: Macro = match toml::from_str(&contents) {
+                        Ok(evs) => evs,
+                        Err(e) => {
+                            println!("Failed to deserialize macro file: {:?}", e);
+                            return Ok(());
+                        }
+                    };
+                    let description = evs.description;
                     let name = path
                         .file_stem()
                         .expect("Failed to get file stem")
                         .to_str()
                         .expect("Failed to convert file stem to str");
-                    println!("{name}");
+
+                    print!("{name:<27} - ");
+
+                    // print description with line breaks
+                    let mut lines = description.lines();
+                    if let Some(first_line) = lines.next() {
+                        println!("{}", first_line); // Print the first line after the first field
+                    }
+                    for line in lines {
+                        println!("{:<30}{line}", "");
+                    }
                 }
             }
         }

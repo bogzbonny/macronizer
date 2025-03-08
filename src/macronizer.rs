@@ -6,13 +6,18 @@ use {
 
 // Container for deserializing events
 #[derive(serde::Deserialize, serde::Serialize, Default, Debug, Clone)]
-pub struct RecordedEvents {
-    events: Vec<Event>,
+pub struct Macro {
+    pub description: String,
+    pub events: Vec<Event>,
 }
 
 // Starts recording by using the provided event listener
-pub fn record(cfg: &Config, name: String) {
-    let events = Rc::new(RefCell::new(RecordedEvents::default()));
+pub fn record(cfg: &Config, name: String, description: String) {
+    let mcro = Macro {
+        description,
+        events: Vec::new(),
+    };
+    let mcro = Rc::new(RefCell::new(mcro));
 
     // populate the starting mouse position
     let device_state = device_query::DeviceState::new();
@@ -26,13 +31,12 @@ pub fn record(cfg: &Config, name: String) {
     let last_event_time = Rc::new(RefCell::new(None::<Instant>));
 
     // set the recording_initial_wait_ms
-    events
-        .borrow_mut()
+    mcro.borrow_mut()
         .events
         .push(Event::Wait(cfg.recording_initial_wait_ms));
 
     let cfg_ = cfg.clone();
-    let events_ = events.clone();
+    let mcro_ = mcro.clone();
     let recent_keys_ = recent_keys.clone();
     let callback = move |event: rdev::Event| {
         let op_ev = match event.event_type {
@@ -88,21 +92,21 @@ pub fn record(cfg: &Config, name: String) {
                     let now = Instant::now();
                     if let Some(last_event_time) = last_event_time.borrow_mut().take() {
                         let ms = now.duration_since(last_event_time).as_millis() as u64;
-                        events_.borrow_mut().events.push(Event::Wait(ms));
+                        mcro_.borrow_mut().events.push(Event::Wait(ms));
                         println!("adding event: wait {}", ms);
                     }
                     last_event_time.replace(Some(now));
                 }
                 WaitStrategy::ConstantMS(ms) => {
                     // TODO more complex constant wait strategy
-                    events_.borrow_mut().events.push(Event::Wait(ms));
+                    mcro_.borrow_mut().events.push(Event::Wait(ms));
                 }
             };
-            events_.borrow_mut().events.push(ev);
+            mcro_.borrow_mut().events.push(ev);
         }
         // break if the end keys recent_keys match the stop keys
         if recent_keys_.borrow().ends_with(&cfg_.stop_keystrokes) {
-            let mut events = events_.borrow().clone();
+            let mut events = mcro_.borrow().clone();
             let mut to_pop = cfg_.stop_keystrokes.clone();
             // move through the events in reverse popping everything that matches the stop keys
             for i in (0..events.events.len()).rev() {
@@ -163,7 +167,7 @@ pub fn start_playback(_cfg: &Config, name: &str) {
         return;
     };
 
-    let evs: RecordedEvents = match toml::from_str(&contents) {
+    let evs: Macro = match toml::from_str(&contents) {
         Ok(evs) => evs,
         Err(e) => {
             println!("Failed to deserialize macro file: {:?}", e);
